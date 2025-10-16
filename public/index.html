@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Property Description Generator</title>
+  <style>
+    :root { --bg:#0f172a; --card:#111827; --ink:#e5e7eb; --muted:#94a3b8; --accent:#22d3ee; }
+    *{box-sizing:border-box}
+    body{margin:0; font-family: Inter, system-ui, Arial, sans-serif; background:var(--bg); color:var(--ink);}
+    .wrap{max-width:980px; margin:32px auto; padding:0 16px;}
+    .grid{display:grid; grid-template-columns: 1fr 1fr; gap:16px}
+    .card{background:var(--card); border:1px solid #1f2937; border-radius:16px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    h1{font-size:28px; margin:0 0 6px}
+    p.sub{margin:0 0 16px; color:var(--muted)}
+    label{font-size:13px; color:var(--muted)}
+    textarea,select{width:100%; background:#0b1220; color:var(--ink); border:1px solid #263245; border-radius:12px; padding:12px; font-size:14px}
+    button{background:var(--accent); border:0; color:#00323a; font-weight:700; padding:12px 16px; border-radius:12px; cursor:pointer}
+    .row{display:flex; gap:8px; align-items:center}
+    .out{white-space:pre-wrap; line-height:1.6}
+    .title{font-size:18px; font-weight:700}
+    .muted{color:var(--muted)}
+    .pill{border:1px solid #2b3a52; padding:4px 8px; border-radius:999px; font-size:12px}
+    .footer{margin-top:16px; display:flex; gap:8px; flex-wrap:wrap}
+    @media (max-width:900px){ .grid{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>AI Property Description Generator</h1>
+    <p class="sub">Enter features, pick tone & length → get a polished title, description, and MLS bullets.</p>
+
+    <div class="grid">
+      <div class="card">
+        <div class="row" style="justify-content:space-between; margin-bottom:8px">
+          <span class="pill">Step 1</span>
+          <button id="example">Use Example</button>
+        </div>
+        <label>Key features</label>
+        <textarea id="features" rows="6" placeholder="2 bed, 1 bath, renovated kitchen, in-unit laundry, balcony, hardwood floors, near subway"></textarea>
+        <div class="row" style="margin-top:8px">
+          <div style="flex:1">
+            <label>Tone</label>
+            <select id="tone">
+              <option>Professional</option>
+              <option>Luxury</option>
+              <option>Family-Friendly</option>
+              <option>Student/Value</option>
+              <option>Investor</option>
+            </select>
+          </div>
+          <div style="flex:1">
+            <label>Length</label>
+            <select id="length">
+              <option value="short">Short (2-3 sentences)</option>
+              <option value="medium">Medium (4-6 sentences)</option>
+              <option value="long">Long (1 short paragraph)</option>
+            </select>
+          </div>
+          <div style="flex:1">
+            <label>Audience</label>
+            <select id="audience">
+              <option value="buyers">Buyers</option>
+              <option value="renters">Renters</option>
+              <option value="investors">Investors</option>
+            </select>
+          </div>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button id="gen">Generate</button>
+          <button id="clear" style="background:#374151; color:#e5e7eb">Clear</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row" style="justify-content:space-between; margin-bottom:6px">
+          <span class="pill">Step 2</span>
+          <div class="row">
+            <button id="copyTitle">Copy Title</button>
+            <button id="copyDesc" style="margin-left:6px">Copy Description</button>
+          </div>
+        </div>
+        <div class="title" id="title">(Title will appear here)</div>
+        <div id="desc" class="out" style="margin-top:8px">No description yet.</div>
+        <div style="margin-top:12px">
+          <div class="muted" style="margin-bottom:6px">MLS-style bullets:</div>
+          <ul id="bullets" class="out" style="margin:0 0 8px 18px"></ul>
+        </div>
+        <div class="footer">
+          <span class="pill">Tone: <span id="toneTag">—</span></span>
+          <span class="pill">Length: <span id="lengthTag">—</span></span>
+          <span class="pill">Audience: <span id="audTag">—</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const el=id=>document.getElementById(id);
+    const features=el('features'),tone=el('tone'),lengthSel=el('length'),audience=el('audience');
+    const gen=el('gen'),clearBtn=el('clear'),example=el('example');
+    const title=el('title'),desc=el('desc'),bullets=el('bullets');
+    const copyTitle=el('copyTitle'),copyDesc=el('copyDesc');
+    const toneTag=el('toneTag'),lengthTag=el('lengthTag'),audTag=el('audTag');
+
+    example.onclick=()=>{features.value=`2 bed, 1 bath, 820 sq ft, renovated kitchen with quartz counters, stainless steel appliances, in-unit laundry, private balcony, hardwood floors, elevator building, steps to subway, pet-friendly`};
+
+    function setTags(){toneTag.textContent=tone.value; lengthTag.textContent=lengthSel.options[lengthSel.selectedIndex].text; audTag.textContent=audience.value;}
+    [tone,lengthSel,audience].forEach(x=>x.addEventListener('change',setTags)); setTags();
+
+    gen.onclick=async()=>{
+      const payload={features:features.value.trim(),tone:tone.value,length:lengthSel.value,audience:audience.value};
+      if(!payload.features){alert('Please enter some features.');return;}
+      desc.textContent='Generating…'; title.textContent='(Working…)'; bullets.innerHTML='';
+      try{
+        const res=await fetch('/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        const data=await res.json();
+        if(data.error) throw new Error(data.error);
+        title.textContent=data.meta?.title||'Suggested Listing Title';
+        desc.textContent=data.description||'—';
+        bullets.innerHTML=(data.meta?.bullets||[]).map(b=>`<li>${b}</li>`).join('');
+        setTags();
+      }catch(e){title.textContent='(Error)'; desc.textContent='Could not generate. Check server and API key.';}
+    };
+
+    clearBtn.onclick=()=>{features.value=''; title.textContent='(Title will appear here)'; desc.textContent='No description yet.'; bullets.innerHTML='';};
+
+    copyTitle.onclick=async()=>{await navigator.clipboard.writeText(title.textContent); copyTitle.textContent='Copied!'; setTimeout(()=>copyTitle.textContent='Copy Title',1000)};
+    copyDesc.onclick=async()=>{await navigator.clipboard.writeText(desc.textContent); copyDesc.textContent='Copied!'; setTimeout(()=>copyDesc.textContent='Copy Description',1000)};
+  </script>
+</body>
+</html>
