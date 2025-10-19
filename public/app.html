@@ -23,17 +23,73 @@
     .pill{border:1px solid #2b3a52; padding:4px 8px; border-radius:999px; font-size:12px}
     .footer{margin-top:16px; display:flex; gap:8px; flex-wrap:wrap}
     @media (max-width:900px){ .grid{grid-template-columns:1fr} }
-  </style>
+    /* --- Sleek navbar + buttons --- */
+.nav { position: sticky; top: 0; z-index: 40;
+  background: rgba(2,6,23,.75); backdrop-filter: blur(10px);
+  border-bottom: 1px solid #1f2937;
+}
+.nav-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center;
+  gap: 12px; padding: 12px 16px;
+}
+.brand { display:flex; align-items:center; gap:10px; color:#e5e7eb; font-weight:700; letter-spacing:.3px }
+.brand img { height:28px; width:28px; border-radius:8px; object-fit:cover }
+.nav-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center;
+  gap: 12px; padding: 12px 16px;
+}
+.btn { background:#22d3ee; color:#03262c; font-weight:700; padding:10px 14px; border-radius:10px;
+  text-decoration:none; display:inline-block; }
+.btn.secondary { background:#111827; color:#e5e7eb; border:1px solid #2b3a52 }
+
+
+/* Hover effects for navbar buttons */
+.btn { transition: all 0.2s ease; }
+.btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.4);
+}
+
+  </style>    
 </head>
 <body>
   <!-- Header -->
-<header style="background:#0b1220;border-bottom:1px solid #1f2937;">
+<header class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="/">
+      <img src="logo.png" alt="Logo">
+      <span>QuickListing</span>
+    </a>
+    <div class="nav-spacer">
+      <a href="#app" class="btn">Try Free</a>
+      <a href="/contact.html" class="btn secondary">Contact</a>
+    </div>
+  </div>
+</header>
   <div style="max-width:980px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:12px 16px;">
     <img src="logo.png" alt="Logo" style="height:32px;width:auto;border-radius:6px;object-fit:cover">
     <div style="font-weight:700;letter-spacing:.3px;color:#fff;font-size:20px">QuickListing</div>
     <div style="margin-left:auto;font-size:14px;color:#94a3b8;">AI-powered property descriptions</div>
   </div>
 </header>
+
+
+</header>
+
+<!-- Hero Section -->
+<section style="text-align:center; padding:80px 16px; background:#0f172a; color:#e5e7eb;">
+  <h1 style="font-size:40px; margin-bottom:10px;">QuickListing</h1>
+  <p style="font-size:18px; color:#94a3b8; margin-bottom:24px;">
+    AI-powered property descriptions that sell homes faster.
+  </p>
+  <a href="#app" 
+     style="background:#22d3ee; color:#0f172a; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:600;">
+     Try it for Free
+  </a>
+</section>
+
+<!-- Main App Section -->
+<div id="app" style="max-width:800px;margin:60px auto;padding:20px;background:#1e293b;border-radius:16px;box-shadow:0 0 20px rgba(0,0,0,0.2);">
+
 
   <div class="wrap">
     <h1>AI Property Description Generator</h1>
@@ -137,5 +193,8 @@
     copyTitle.onclick=async()=>{await navigator.clipboard.writeText(title.textContent); copyTitle.textContent='Copied!'; setTimeout(()=>copyTitle.textContent='Copy Title',1000)};
     copyDesc.onclick=async()=>{await navigator.clipboard.writeText(desc.textContent); copyDesc.textContent='Copied!'; setTimeout(()=>copyDesc.textContent='Copy Description',1000)};
   </script>
+  <footer style="text-align:center;padding:30px 0;color:#94a3b8;border-top:1px solid #1e293b;margin-top:80px;">
+  © 2025 QuickListing • Built with ❤️ by Nikita
+</footer>
 </body>
 </html>

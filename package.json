@@ -1,7 +1,7 @@
 {
-  "name": "real-estate-ai",
+  "name": "quicklisting",
   "version": "1.0.0",
-  "description": "AI Property Description Generator",
+  "description": "AI-powered property description generator",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

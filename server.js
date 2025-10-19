@@ -1,26 +1,36 @@
-// server.js — Real Estate AI
+// server.js — QuickListing (clean)
 const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, ".env"), override: true });
-
-// 🔑 Debug log to confirm key is loading
-console.log(
-  "Key prefix:",
-  (process.env.OPENAI_API_KEY || "").slice(0, 7),
-  "len:",
-  (process.env.OPENAI_API_KEY || "").length
-);
-
-const { OpenAI } = require("openai");
-const openai = new OpenAI({ apiKey: (process.env.OPENAI_API_KEY || "").trim() });
-
 const express = require("express");
-const app = express();
+const { OpenAI } = require("openai");
+require("dotenv").config();
 
+const app = express();
 app.use(express.json());
+
+// serve /public assets (HTML, CSS, images, JS)
 app.use(express.static(path.join(__dirname, "public")));
 
-// 🧪 Probe endpoint — visit http://localhost:3000/probe
-app.get("/probe", async (_, res) => {
+// --- OpenAI client ---
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// ---------- ROUTES ----------
+
+// Landing page (marketing)
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "landing.html"));
+});
+
+// App UI (the generator)
+app.get("/app", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "app.html"));
+});
+
+// Health/Probe
+app.get("/version", (_req, res) => {
+  res.json({ status: "QuickListing API is live", version: "1.0.0" });
+});
+
+app.get("/probe", async (_req, res) => {
   try {
     const r = await openai.models.list();
     res.send("probe-ok: " + (r.data?.length || 0) + " models");
@@ -30,55 +40,49 @@ app.get("/probe", async (_, res) => {
   }
 });
 
-// 🏠 Main generate route
+// Main generate route (keep your existing prompt logic here)
 app.post("/generate", async (req, res) => {
   try {
-    const { features = "", tone = "Professional", length = "short", audience = "buyers" } = req.body || {};
-    if (!features.trim()) return res.status(400).json({ error: "Please enter some features." });
+    const { features = "", tone = "Professional", length = "short", audience = "General" } = req.body;
+    if (!features.trim()) return res.status(400).json({ error: "Please enter features." });
 
-    const lengthRule =
-      length === "short" ? "2-3 sentences" :
-      length === "medium" ? "4-6 sentences" :
-      "1 short paragraph (6-8 sentences)";
+    const system = `You are a real-estate copywriter. Keep it concise, on-brand, and MLS-safe. Tone: ${tone}. Audience: ${audience}. Length: ${length}.`;
+    const user = `Create a listing description from these features: ${features}`;
 
-    const system = `You are a real-estate copywriter. Write accurate, concise listing blurbs. No emojis, prices, or contact info. Use fair-housing-safe language.`;
-    const user = `Create a ${lengthRule} property description for ${audience}.
-Tone: ${tone}.
-Key features: ${features}.
-Rules: concise, highlight location perks + standout amenities, no ALL CAPS or hashtags.`;
-
-    // Generate description
-    const descResp = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      temperature: 0.65,
-      messages: [{ role: "system", content: system }, { role: "user", content: user }]
-    });
-    const description = descResp.choices?.[0]?.message?.content?.trim() || "";
-
-    // Generate title + bullets
-    const metaResp = await openai.chat.completions.create({
+    const resp = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 0.3,
       messages: [
-        { role: "system", content: "From the listing text, return JSON ONLY: {\"title\":\"<=8 words\",\"bullets\":[\"4-6 short bullets\"]}" },
+        { role: "system", content: system },
+        { role: "user", content: user }
+      ]
+    });
+
+    const description = resp.choices?.[0]?.message?.content?.trim() || "";
+
+    // quick second pass: title + bullets JSON
+    const refine = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      temperature: 0.2,
+      messages: [
+        { role: "system", content: "From the listing text, return JSON: {\"title\": \"...\", \"bullets\": [\"...\",\"...\"]} only." },
         { role: "user", content: description }
       ]
     });
 
-    let meta = { title: "", bullets: [] };
+    let meta = { title: "Suggested Listing Title", bullets: [] };
     try {
-      const txt = metaResp.choices?.[0]?.message?.content || "{}";
-      const start = txt.indexOf("{"); const end = txt.lastIndexOf("}");
-      meta = JSON.parse(txt.slice(start, end + 1));
-    } catch {}
+      const txt = refine.choices?.[0]?.message?.content || "{}";
+      meta = JSON.parse(txt);
+    } catch { /* fallback keeps default meta */ }
 
     res.json({ description, meta });
   } catch (e) {
-    console.error("OPENAI ERROR:", e.status, e.message);
-    res.status(500).json({ error: "Failed to generate description." });
+    console.error(e);
+    res.status(500).json({ error: "Failed to generate" });
   }
 });
 
+// ---------- START ----------
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Real-Estate AI → http://localhost:${PORT}`));
-
+app.listen(PORT, () => console.log(`QuickListing → http://localhost:${PORT}`));
