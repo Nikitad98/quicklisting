@@ -196,5 +196,33 @@
   <footer style="text-align:center;padding:30px 0;color:#94a3b8;border-top:1px solid #1e293b;margin-top:80px;">
   © 2025 QuickListing • Built with ❤️ by Nikita
 </footer>
+<script>
+async function callGenerate(payload) {
+  const res = await fetch('/generate', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  });
+
+  const remaining = res.headers.get('X-Remaining');
+  if (remaining !== null) {
+    const el = document.getElementById('remaining') || (() => {
+      const p=document.createElement('p'); p.id='remaining'; p.style.color='#94a3b8';
+      document.querySelector('.wrap')?.prepend(p); return p;
+    })();
+    el.textContent = `Remaining this month: ${remaining}`;
+  }
+
+  if (!res.ok) {
+    const msg = (await res.json().catch(()=>({error:'Error'}))).error || 'Error';
+    alert(msg);
+    return null;
+  }
+  return res.json();
+}
+</script>
+</body>
+</html>
+
 </body>
 </html>

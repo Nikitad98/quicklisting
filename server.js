@@ -15,6 +15,9 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // ---------- ROUTES ----------
 
+// serve static
+app.use(express.static(path.join(__dirname, "public")));
+
 // Landing page (marketing)
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "landing.html"));
@@ -39,6 +42,64 @@ app.get("/probe", async (_req, res) => {
     res.status(500).send("probe-fail: " + (e.code || e.message));
   }
 });
+// ==== SIMPLE MONTHLY CAPS (per IP, MVP) ====
+// Change these when you adjust pricing:
+const CAPS = { free: 15, starter: 150, pro: 600, office: 2000 };
+
+const usageByIp = new Map(); // ip -> { month, counts: { plan, used } }
+
+// Helper to get plan from header (MVP: we pass plan from frontend/localStorage)
+function getPlan(req) {
+  // Expect "x-plan: free|starter|pro|office"
+  const p = (req.headers["x-plan"] || "free").toLowerCase();
+  return ["free","starter","pro","office"].includes(p) ? p : "free";
+}
+
+app.use((req, res, next) => {
+  if (req.path !== "/generate") return next();
+
+  // ---- Monthly cap middleware (place ABOVE /generate) ----
+const CAPS = { free: 15, starter: 150, pro: 600, office: 2000 };
+const usageByIp = new Map(); // ip -> { month, used, plan }
+
+// For now everyone is "free". Later we’ll set this from Stripe/login.
+function getPlan(/* req */) { return "free"; }
+
+app.use((req, res, next) => {
+  // Only count calls to the generator
+  if (req.path !== "/generate") return next();
+
+  const ip = (req.headers["x-forwarded-for"] ||
+              req.socket?.remoteAddress ||
+              req.ip ||
+              "unknown").toString();
+
+  const plan = getPlan(req);
+  const month = new Date().getMonth();
+  let rec = usageByIp.get(ip);
+
+  // New month or first time => reset
+  if (!rec || rec.month !== month) rec = { month, used: 0, plan };
+
+  // If already at cap, block BEFORE increment
+  if (rec.used >= CAPS[plan]) {
+    res.setHeader("X-Plan", plan);
+    res.setHeader("X-Remaining", 0);
+    return res.status(402).json({ error: `Monthly limit reached for ${plan}. Upgrade at /upgrade.` });
+  }
+
+  // Count this request
+  rec.plan = plan;
+  rec.used += 1;
+  usageByIp.set(ip, rec);
+
+  // Expose remaining in headers for the UI
+  res.setHeader("X-Plan", plan);
+  res.setHeader("X-Remaining", Math.max(0, CAPS[plan] - rec.used));
+
+  next();
+});
+
 
 // Main generate route (keep your existing prompt logic here)
 app.post("/generate", async (req, res) => {
