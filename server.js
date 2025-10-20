@@ -1,34 +1,30 @@
-// server.js — QuickListing (clean)
+// server.js — QuickListing (clean, complete)
 const path = require("path");
+const fs = require("fs");
 const express = require("express");
 const { OpenAI } = require("openai");
 require("dotenv").config();
 
 const app = express();
 app.use(express.json());
-
-// serve /public assets (HTML, CSS, images, JS)
 app.use(express.static(path.join(__dirname, "public")));
 
-// --- OpenAI client ---
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// ---------- ROUTES ----------
-
-// serve static
-app.use(express.static(path.join(__dirname, "public")));
-
-// Landing page (marketing)
+// ---------- Landing & App ----------
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "landing.html"));
 });
 
-// App UI (the generator)
 app.get("/app", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "app.html"));
 });
 
-// Health/Probe
+app.get("/upgrade", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "upgrade.html"));
+});
+
+// ---------- Health ----------
 app.get("/version", (_req, res) => {
   res.json({ status: "QuickListing API is live", version: "1.0.0" });
 });
@@ -42,46 +38,30 @@ app.get("/probe", async (_req, res) => {
     res.status(500).send("probe-fail: " + (e.code || e.message));
   }
 });
-// ==== SIMPLE MONTHLY CAPS (per IP, MVP) ====
-// Change these when you adjust pricing:
-const CAPS = { free: 15, starter: 150, pro: 600, office: 2000 };
 
-const usageByIp = new Map(); // ip -> { month, counts: { plan, used } }
-
-// Helper to get plan from header (MVP: we pass plan from frontend/localStorage)
-function getPlan(req) {
-  // Expect "x-plan: free|starter|pro|office"
-  const p = (req.headers["x-plan"] || "free").toLowerCase();
-  return ["free","starter","pro","office"].includes(p) ? p : "free";
-}
-
-app.use((req, res, next) => {
-  if (req.path !== "/generate") return next();
-
-  // ---- Monthly cap middleware (place ABOVE /generate) ----
+// ---------- SIMPLE MONTHLY CAPS (per IP, MVP) ----------
 const CAPS = { free: 15, starter: 150, pro: 600, office: 2000 };
 const usageByIp = new Map(); // ip -> { month, used, plan }
+function getPlan(req) {
+  const p = (req.headers["x-plan"] || "free").toLowerCase();
+  return ["free", "starter", "pro", "office"].includes(p) ? p : "free";
+}
 
-// For now everyone is "free". Later we’ll set this from Stripe/login.
-function getPlan(/* req */) { return "free"; }
-
+// Apply only to /generate calls
 app.use((req, res, next) => {
-  // Only count calls to the generator
   if (req.path !== "/generate") return next();
 
   const ip = (req.headers["x-forwarded-for"] ||
               req.socket?.remoteAddress ||
               req.ip ||
               "unknown").toString();
-
   const plan = getPlan(req);
   const month = new Date().getMonth();
-  let rec = usageByIp.get(ip);
 
-  // New month or first time => reset
+  let rec = usageByIp.get(ip);
   if (!rec || rec.month !== month) rec = { month, used: 0, plan };
 
-  // If already at cap, block BEFORE increment
+  // Block before counting if already at cap
   if (rec.used >= CAPS[plan]) {
     res.setHeader("X-Plan", plan);
     res.setHeader("X-Remaining", 0);
@@ -93,23 +73,23 @@ app.use((req, res, next) => {
   rec.used += 1;
   usageByIp.set(ip, rec);
 
-  // Expose remaining in headers for the UI
+  // Expose remaining for UI
   res.setHeader("X-Plan", plan);
   res.setHeader("X-Remaining", Math.max(0, CAPS[plan] - rec.used));
-
   next();
 });
 
-
-// Main generate route (keep your existing prompt logic here)
+// ---------- GENERATE ----------
 app.post("/generate", async (req, res) => {
   try {
     const { features = "", tone = "Professional", length = "short", audience = "General" } = req.body;
     if (!features.trim()) return res.status(400).json({ error: "Please enter features." });
 
-    const system = `You are a real-estate copywriter. Keep it concise, on-brand, and MLS-safe. Tone: ${tone}. Audience: ${audience}. Length: ${length}.`;
+    const system = `You are a real-estate copywriter. Keep it concise, MLS-safe, and on-brand.
+Tone: ${tone}. Audience: ${audience}. Length: ${length}.`;
     const user = `Create a listing description from these features: ${features}`;
 
+    // 1) Main description
     const resp = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 0.3,
@@ -121,12 +101,24 @@ app.post("/generate", async (req, res) => {
 
     const description = resp.choices?.[0]?.message?.content?.trim() || "";
 
-    // quick second pass: title + bullets JSON
+    // Rough token estimate (chars / 4)
+    const inputChars = JSON.stringify(req.body || {}).length;
+    const outputChars = (description || "").length;
+    const estTokens = Math.round((inputChars + outputChars) / 4);
+    console.log("Estimated tokens used:", estTokens);
+
+    // Log usage locally (creates usage.csv on first write)
+    fs.appendFileSync(
+      path.join(__dirname, "usage.csv"),
+      `${Date.now()},${getPlan(req)},${estTokens}\n`
+    );
+
+    // 2) Title + bullets JSON
     const refine = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 0.2,
       messages: [
-        { role: "system", content: "From the listing text, return JSON: {\"title\": \"...\", \"bullets\": [\"...\",\"...\"]} only." },
+        { role: "system", content: 'From the listing text, return JSON only like {"title":"...","bullets":["...","..."]}.' },
         { role: "user", content: description }
       ]
     });
@@ -135,7 +127,8 @@ app.post("/generate", async (req, res) => {
     try {
       const txt = refine.choices?.[0]?.message?.content || "{}";
       meta = JSON.parse(txt);
-    } catch { /* fallback keeps default meta */ }
+      if (!Array.isArray(meta.bullets)) meta.bullets = [];
+    } catch { /* keep default meta */ }
 
     res.json({ description, meta });
   } catch (e) {
