@@ -132,6 +132,19 @@
           </div>
         </div>
         <div class="row" style="margin-top:12px">
+          <!-- Plan selector + remaining counter -->
+<div id="planRow" style="margin:12px 0 16px;">
+  <label style="display:block;margin:0 0 6px;color:#94a3b8;font-size:13px">Choose plan</label>
+  <select id="planSel"
+          style="padding:8px;border-radius:10px;background:#0f172a;color:#e5e7eb;border:1px solid #1f2937">
+    <option value="free">Free</option>
+    <option value="starter">Starter ($9)</option>
+    <option value="pro">Pro ($15)</option>
+    <option value="office">Office ($49)</option>
+  </select>
+  <p id="remaining" style="margin:8px 0 0;color:#94a3b8;font-size:13px"></p>
+</div>
+
           <button id="gen">Generate</button>
           <button id="clear" style="background:#374151; color:#e5e7eb">Clear</button>
         </div>
@@ -196,6 +209,45 @@
   <footer style="text-align:center;padding:30px 0;color:#94a3b8;border-top:1px solid #1e293b;margin-top:80px;">
   © 2025 QuickListing • Built with ❤️ by Nikita
 </footer>
+  <footer style="text-align:center;padding:16px">
+    © 2025 QuickListing • Built with ❤️ by Nikita
+  </footer>
+
+  <!-- ==== Plan Logic Script ==== -->
+  <script>
+    const planSel = document.getElementById('planSel');
+    const remaining = document.getElementById('remaining') || (() => {
+      const p = document.createElement('p');
+      p.id = 'remaining';
+      p.style.color = '#94a3b8';
+      document.querySelector('.wrap')?.prepend(p);
+      return p;
+    })();
+
+    async function callGenerate(payload){
+      const headers = {
+        'Content-Type': 'application/json',
+        'x-plan': planSel.value
+      };
+      const res = await fetch('/generate', { method:'POST', headers, body: JSON.stringify(payload) });
+
+      // show remaining from headers
+      const r = res.headers.get('X-Remaining');
+      const plan = res.headers.get('X-Plan');
+      if (r !== null) remaining.textContent = `Plan: ${plan} • Remaining this month: ${r}`;
+
+      if (!res.ok) {
+        const err = await res.json().catch(()=>({error:'Error'}));
+        alert(err.error || 'Error');
+        return null;
+      }
+
+      return res.json();
+    }
+  </script>
+</body>
+</html>
+
 <script>
 async function callGenerate(payload) {
   const res = await fetch('/generate', {
