@@ -5,6 +5,23 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>QuickListing — AI property descriptions</title>
   <style>
+    /* Brand + link reset */
+a { color:#e5e7eb; text-decoration:none; }
+a:hover { text-decoration:none; opacity:.9; }
+
+.btn { background:#22d3ee; color:#062b33; font-weight:700; padding:10px 14px;
+  border-radius:10px; display:inline-block; transition:.15s; border:1px solid #0ea5b7; }
+.btn:hover { filter:brightness(1.07); transform:translateY(-1px); }
+.btn.alt { background:#111827; color:#e5e7eb; border:1px solid #1f2937; }
+
+/* Navbar brand (logo + wordmark) */
+.brand { display:flex; align-items:center; gap:10px; font-weight:800; font-size:16px; color:#e5e7eb; }
+.brand img { width:28px; height:28px; border-radius:8px; background:#0f172a; }
+
+/* Accent pills, cards */
+.pill { border:1px solid #1f2937; background:#111827; color:#e5e7eb; }
+.card { background:#0f172a; border:1px solid #1f2937; border-radius:16px; }
+
     :root{--bg:#0b1220;--card:#111827;--muted:#94a3b8;--line:#1f2937;--cta:#22d3ee}
     *{box-sizing:border-box}
     body{margin:0;font-family:Inter,system-ui,Arial;background:var(--bg);color:#e5e7eb}
