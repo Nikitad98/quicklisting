@@ -1,112 +1,153 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>QuickListing — AI property descriptions</title>
   <style>
     :root{
-      --bg:#0b1220;--card:#111827;--ink:#e5e7eb;--muted:#94a3b8;
-      --cta:#22d3ee;--cta-ink:#03262c;--pill:#1f2937;--pill-b:#1f2937;
-      --shadow:0 10px 25px rgba(0,0,0,.35)
+      --bg:#0b1220;--card:#111827;--muted:#94a3b8;--ink:#e5e7eb;
+      --cta:#22d3ee;--cta2:#03262c;--accent:#1f2937;--ring:#1f2937;
+      --shadow:0 12px 40px rgba(0,0,0,.35);
     }
     *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,Arial}
-    a{color:#7dd3fc;text-decoration:none}
-    a:hover{text-decoration:underline}
+    body{margin:0;background:linear-gradient(180deg,#0b1220,#0a1524 40%,#0b1220);
+         color:var(--ink);font:15px/1.6 system-ui,Segoe UI,Inter,Arial}
+    a{color:var(--ink);text-decoration:none}
+    a:hover{opacity:.9}
 
-    /* simple container */
-    .wrap{max-width:1100px;margin:0 auto;padding:28px 16px}
-
-    /* navbar */
-    .nav{position:sticky;top:0;z-index:20;background:rgba(11,18,32,.75);backdrop-filter:blur(10px);border-bottom:1px solid #1f2937}
-    .nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:16px;padding:12px 16px}
-    .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.2px}
-    .brand img{height:26px;width:26px}
+    /* NAV */
+    .nav{position:sticky;top:0;z-index:40;background:rgba(11,18,32,.85);
+         backdrop-filter:blur(10px);border-bottom:1px solid #1f2937}
+    .nav-inner{max-width:1120px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:12px 16px}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:700}
+    .brand img{width:28px;height:28px;border-radius:8px;object-fit:cover;filter:saturate(.15) brightness(1.15)}
     .nav-spacer{margin-left:auto}
-    .btn{background:var(--cta);color:var(--cta-ink);font-weight:700;padding:10px 14px;border-radius:10px;display:inline-block}
+    .btn{background:var(--cta);color:#062e38;font-weight:700;border:0;border-radius:10px;padding:10px 16px;display:inline-block}
     .btn.secondary{background:#111827;color:#e5e7eb;border:1px solid #1f2937}
-    .btn:hover{filter:brightness(1.05)}
 
-    /* hero */
-    .hero{padding:72px 0 36px}
-    .title{font-size:40px;font-weight:800;margin:0 0 12px}
-    .sub{color:var(--muted);margin:0 0 22px}
-    .buttons{display:flex;gap:12px}
-    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:26px}
-    .card{background:var(--card);border:1px solid #1f2937;border-radius:14px;padding:16px;box-shadow:var(--shadow)}
-    .card h3{margin:0 0 6px}
-    .check{color:#22d3ee;margin-right:6px}
+    /* HERO */
+    .wrap{max-width:1120px;margin:0 auto;padding:40px 16px}
+    .hero{display:grid;grid-template-columns: 1.1fr .9fr; gap:28px;align-items:center;padding:40px 0}
+    .kicker{display:inline-block;background:#102136;border:1px solid #1f2937;padding:6px 10px;border-radius:999px;color:#9fb4cc;margin-bottom:14px}
+    h1{font-size:44px;line-height:1.15;margin:0 0 12px}
+    .muted{color:var(--muted)}
+    .buttons{display:flex;gap:10px;margin-top:16px}
+    .video{background:#0d1a2a;border:1px solid #1f2937;border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+    .video video{width:100%;height:100%;display:block;background:#000}
 
-    /* pricing */
-    .pricing{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-top:18px}
-    .price-card{background:var(--card);border:1px solid #1f2937;border-radius:14px;padding:18px;box-shadow:var(--shadow)}
-    .price{font-size:28px;font-weight:800;margin:6px 0 10px}
+    /* FEATURES STRIP */
+    .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin:36px 0 16px}
+    .pill{border:1px solid #1f2937;background:#0f172a;border-radius:12px;padding:18px;box-shadow:var(--shadow)}
 
-    footer{text-align:center;padding:28px 0;color:var(--muted)}
+    /* PRICING */
+    .pricing{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin:32px 0 48px}
+    .price-card{background:var(--card);border:1px solid var(--ring);border-radius:16px;padding:22px;box-shadow:var(--shadow)}
+    .price-card h3{font-size:32px;margin:0 0 8px}
+    .price-card h3 span{font-size:16px;color:var(--muted);font-weight:600}
+    .price-card p{margin:0 0 12px}
+    /* single, clean bullets (no duplicated dots) */
+    .price-card ul{list-style:none;margin:12px 0 16px 0;padding:0}
+    .price-card li{display:flex;gap:8px;align-items:center}
+    .price-card li::before{content:"•";color:var(--cta);font-size:18px;line-height:1}
+
+    footer{color:#a7bed6;text-align:center;padding:28px 0;border-top:1px solid #122035;margin-top:48px}
+
+    @media (max-width:980px){
+      .hero{grid-template-columns:1fr}
+      .pricing{grid-template-columns:1fr}
+      .grid3{grid-template-columns:1fr}
+    }
   </style>
 </head>
 <body>
-
-  <!-- Navbar (no top-right Pricing/Start Free) -->
-  <div class="nav">
+  <!-- NAV (trimmed: no “Pricing / Start Free” up-right) -->
+  <header class="nav">
     <div class="nav-inner">
-      <a class="brand" href="/">
-        <img src="/logo.svg" alt="QuickListing logo" />
-        <span>QuickListing</span>
-      </a>
+      <a class="brand" href="/"><img src="/logo.svg" alt="logo"><span>QuickListing</span></a>
       <div class="nav-spacer"></div>
-      <a href="/app" class="btn">Try it Free</a>
-      <a href="/upgrade" class="btn secondary">See Pricing</a>
+      <a href="/contact.html" class="btn secondary">Contact</a>
     </div>
-  </div>
+  </header>
 
-  <!-- Hero -->
-  <section class="wrap hero">
-    <h1 class="title">Write polished listing<br/>descriptions in seconds.</h1>
-    <p class="sub">On-brand copy, MLS-ready bullets, and suggested titles — generated from your key features.</p>
-    <div class="buttons">
-      <a href="/app" class="btn">Try it Free</a>
-      <a href="/upgrade" class="btn secondary">See Pricing</a>
-    </div>
+  <main class="wrap">
+    <!-- HERO -->
+    <section class="hero">
+      <div>
+        <span class="kicker">AI for real estate teams</span>
+        <h1>Write polished listing<br/>descriptions in seconds.</h1>
+        <p class="muted">On-brand copy, MLS-ready bullets, and suggested titles—generated from your key features.</p>
+        <div class="buttons">
+          <a href="/app#app" class="btn">Try it Free</a>
+          <a href="/upgrade" class="btn secondary">See Pricing</a>
+        </div>
 
-    <!-- 3 benefits + your video (replaces “Quick demo”) -->
-    <div class="grid">
-      <div class="card"><h3>Consistent quality</h3><p>Professional tone, zero over-promising.</p></div>
-      <div class="card"><h3>Faster workflow</h3><p>Save 10–15 minutes per listing.</p></div>
-      <div class="card">
-        <h3>How it works</h3>
-        <video controls playsinline style="width:100%;border-radius:12px;margin-top:6px" src="/demo.mp4"></video>
+        <div class="grid3">
+          <div class="pill">
+            <h3 style="margin:0 0 6px">Consistent quality</h3>
+            <p class="muted" style="margin:0">Professional tone, zero over-promising.</p>
+          </div>
+          <div class="pill">
+            <h3 style="margin:0 0 6px">Faster workflow</h3>
+            <p class="muted" style="margin:0">Save 10–15 minutes per listing.</p>
+          </div>
+          <div class="pill">
+            <h3 style="margin:0 0 6px">MLS-ready bullets</h3>
+            <p class="muted" style="margin:0">Auto bullets + suggested title included.</p>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <!-- Pricing on the front page (only $0 and $9) -->
-    <div class="wrap" style="padding:0;margin-top:30px">
-      <h2 style="margin:0 0 12px">Pricing</h2>
-      <p class="sub">Start free. Upgrade when you’re closing deals.</p>
+      <!-- Your promo video replaces “Quick demo” -->
+      <div class="video">
+        <!-- Put your file in /public as demo.mp4 -->
+        <video controls preload="metadata" poster="/video-poster.jpg" src="/demo.mp4"></video>
+      </div>
+    </section>
+
+    <!-- PRICING (0 / 9 / 25) -->
+    <section>
+      <h2 style="margin:0 0 8px">Pricing</h2>
+      <p class="muted" style="margin:0 0 18px">Start free. Upgrade when you’re closing deals.</p>
+
       <div class="pricing">
+        <!-- $0 -->
         <div class="price-card">
-          <div class="price">$0 <span style="font-size:16px">/mo</span></div>
-          <p class="sub">Free — try it out</p>
+          <h3>$0 <span>/mo</span></h3>
+          <p class="muted">Free — try it out</p>
           <ul>
-            <li>• Up to 10 descriptions / month</li>
-            <li>• All tones & lengths</li>
+            <li>Up to 10 descriptions / month</li>
+            <li>All tones &amp; lengths</li>
           </ul>
-          <p><a class="btn" href="/app">Use Free</a></p>
+          <a href="/app#app" class="btn">Use Free</a>
         </div>
+
+        <!-- $9 -->
         <div class="price-card">
-          <div class="price">$9 <span style="font-size:16px">/mo</span></div>
-          <p class="sub">Starter — for solo agents</p>
+          <h3>$9 <span>/mo</span></h3>
+          <p class="muted">Starter — for solo agents</p>
           <ul>
-            <li>• 150 descriptions / month</li>
-            <li>• Priority processing</li>
-            <li>• Email support</li>
+            <li>150 descriptions / month</li>
+            <li>Priority processing</li>
+            <li>Email support</li>
           </ul>
-          <p><a class="btn" href="/upgrade">Upgrade</a></p>
+          <a href="/upgrade" class="btn">Upgrade</a>
+        </div>
+
+        <!-- $25 -->
+        <div class="price-card">
+          <h3>$25 <span>/mo</span></h3>
+          <p class="muted">Plus — growing users</p>
+          <ul>
+            <li>300 descriptions / month</li>
+            <li>Faster responses</li>
+            <li>Email support</li>
+          </ul>
+          <a href="/upgrade" class="btn">Upgrade</a>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
+  </main>
 
   <footer>© 2025 QuickListing • Built with ❤️ by Nikita</footer>
 </body>
