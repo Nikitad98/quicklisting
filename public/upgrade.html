@@ -2,87 +2,133 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Upgrade • QuickListing</title>
   <style>
-    :root{--bg:#0b1220;--card:#111827;--muted:#94a3b8;--line:#1f2937;--cta:#22d3ee}
+    :root{
+      --bg:#0b1220;
+      --card:#111827;
+      --ink:#e5e7eb;
+      --muted:#94a3b8;
+      --cta:#22d3ee;
+      --cta-ink:#03262c;
+      --shadow:0 10px 25px rgba(0,0,0,.35)
+    }
     *{box-sizing:border-box}
-    body{margin:0;font-family:Inter,system-ui,Arial;background:var(--bg);color:#e5e7eb}
-    .nav{position:sticky;top:0;z-index:40;background:rgba(2,6,23,.75);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
-    .nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:12px 16px}
-    .brand{display:flex;align-items:center;gap:10px;font-weight:700}
-    .brand img{height:28px;width:28px;border-radius:8px;object-fit:cover;background:#0f172a}
-    .wrap{max-width:1000px;margin:40px auto;padding:0 16px}
-    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
-    .price{font-size:28px;font-weight:800;margin:2px 0 8px}
-    .muted{color:var(--muted)}
-    .btn{background:var(--cta);color:#03262c;font-weight:700;padding:10px 14px;border-radius:10px;text-decoration:none;display:inline-block;transition:.15s}
-    .btn:hover{filter:brightness(1.07);transform:translateY(-1px)}
-    .btn.alt{background:#111827;color:#e5e7eb;border:1px solid var(--line)}
-    ul{margin:10px 0 16px;padding-left:18px}
-    li{margin:6px 0}
-    footer{text-align:center;padding:28px 0;color:var(--muted);border-top:1px solid var(--line);margin-top:40px}
-    @media(max-width:900px){.grid{grid-template-columns:1fr}}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--ink);
+      font-family:Inter,system-ui,Arial;
+    }
+    .wrap{
+      max-width:1100px;
+      margin:0 auto;
+      padding:28px 16px;
+    }
+    .top{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:12px 16px;
+      border-bottom:1px solid #1f2937;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-weight:800;
+    }
+    .brand img{
+      height:26px;
+      width:26px;
+    }
+    .spacer{margin-left:auto}
+    .btn{
+      background:var(--cta);
+      color:var(--cta-ink);
+      font-weight:700;
+      padding:10px 14px;
+      border-radius:10px;
+      display:inline-block;
+    }
+    .btn.secondary{
+      background:#111827;
+      color:#e5e7eb;
+      border:1px solid #1f2937;
+    }
+    h1{font-size:32px;margin:18px 0}
+    .pricing{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:18px;
+    }
+    .card{
+      background:var(--card);
+      border:1px solid #1f2937;
+      border-radius:14px;
+      padding:18px;
+      box-shadow:var(--shadow);
+    }
+    .price{
+      font-size:28px;
+      font-weight:800;
+      margin:6px 0 10px;
+    }
+    footer{
+      text-align:center;
+      padding:28px 0;
+      color:var(--muted);
+    }
   </style>
 </head>
 <body>
-  <header class="nav">
-    <div class="nav-inner">
-      <<img src="/logo.svg" alt="QuickListing logo">
-      <div style="margin-left:auto;display:flex;gap:10px">
-        <a class="btn alt" href="/app">Back to App</a>
-      </div>
-    </div>
-  </header>
+  <!-- Top bar -->
+  <div class="top">
+    <a class="brand" href="/">
+      <img src="/logo.svg" alt="QuickListing logo"/>
+      <span>QuickListing</span>
+    </a>
+    <div class="spacer"></div>
+    <!-- Back button now goes to the front page -->
+    <a href="/" class="btn secondary">Back to Home</a>
+  </div>
 
   <div class="wrap">
-    <h1 style="margin:0 0 8px">Upgrade to QuickListing Pro</h1>
-    <p class="muted" style="margin:0 0 24px">Higher monthly limits • faster responses • priority models</p>
+    <h1>Upgrade to QuickListing Pro</h1>
+    <p style="color:#94a3b8;margin-top:-6px">
+      Higher monthly limits • faster responses • priority models
+    </p>
 
-    <div class="grid">
-      <!-- Starter -->
+    <!-- Only $0 and $9 plans -->
+    <div class="pricing" style="margin-top:16px">
       <div class="card">
-        <div class="price">$9<span class="muted" style="font-size:16px"> /mo</span></div>
-        <div class="muted">Starter — for solo agents</div>
+        <div class="price">$0 <span style="font-size:16px">/mo</span></div>
+        <p style="color:#94a3b8">Free — try it out</p>
         <ul>
-          <li>150 descriptions / month</li>
-          <li>Priority processing</li>
-          <li>Email support</li>
+          <li>• Up to 10 descriptions / month</li>
+          <li>• All tones & lengths</li>
         </ul>
-        <a class="btn" href="https://buy.stripe.com/YOUR_STARTER_LINK">Subscribe Starter</a>
+        <p><a class="btn" href="/app">Use Free</a></p>
       </div>
 
-      <!-- Pro -->
       <div class="card">
-        <div class="price">$15<span class="muted" style="font-size:16px"> /mo</span></div>
-        <div class="muted">Pro — heavy users</div>
+        <div class="price">$9 <span style="font-size:16px">/mo</span></div>
+        <p style="color:#94a3b8">Starter — for solo agents</p>
         <ul>
-          <li>600 descriptions / month</li>
-          <li>Faster responses</li>
-          <li>Priority support</li>
+          <li>• 150 descriptions / month</li>
+          <li>• Priority processing</li>
+          <li>• Email support</li>
         </ul>
-        <a class="btn" href="https://buy.stripe.com/YOUR_PRO_LINK">Subscribe Pro</a>
-      </div>
-
-      <!-- Office -->
-      <div class="card">
-        <div class="price">$49<span class="muted" style="font-size:16px"> /mo</span></div>
-        <div class="muted">Office — small teams (3 seats)</div>
-        <ul>
-          <li>2,000 descriptions / month</li>
-          <li>3 seats included</li>
-          <li>Team support</li>
-        </ul>
-        <a class="btn" href="https://buy.stripe.com/YOUR_OFFICE_LINK">Subscribe Office</a>
+        <p><a class="btn" href="/upgrade">Subscribe Starter</a></p>
       </div>
     </div>
 
-    <p class="muted" style="margin-top:16px">
-      Tip: you can start free, and upgrade any time. After payment, your plan change takes effect immediately (webhooks coming soon).
+    <p style="color:#94a3b8;margin-top:18px">
+      Tip: you can start free, and upgrade any time. After payment, your plan change takes effect immediately.
     </p>
   </div>
 
-  <footer>© 2025 QuickListing • Built by Nikita</footer>
+  <footer>© 2025 QuickListing • Built with ❤️ by Nikita</footer>
 </body>
 </html>

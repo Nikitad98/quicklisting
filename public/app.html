@@ -25,7 +25,7 @@ a:hover { text-decoration:none; opacity:.9; }
     :root { --bg:#0f172a; --card:#111827; --ink:#e5e7eb; --muted:#94a3b8; --accent:#22d3ee; }
     *{box-sizing:border-box}
     body{margin:0; font-family: Inter, system-ui, Arial, sans-serif; background:var(--bg); color:var(--ink);}
-    .wrap{max-width:980px; margin:32px auto; padding:0 16px;}
+    .wrap{max-width:1200px; margin:40px auto; padding:40px;}
     .grid{display:grid; grid-template-columns: 1fr 1fr; gap:16px}
     .card{background:var(--card); border:1px solid #1f2937; border-radius:16px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.25)}
     h1{font-size:28px; margin:0 0 6px}
@@ -72,20 +72,12 @@ a:hover { text-decoration:none; opacity:.9; }
   <!-- Header -->
 <header class="nav">
   <div class="nav-inner">
-          <a href="#app" class="btn">Try Free</a>
-<a class="brand" href="/">
+  <a class="brand" href="/">
   <img src="/logo.svg" alt="QuickListing logo">
-  <span>QuickListing</span>
 </a>
 
-    <div class="nav-spacer">
-      <a href="#app" class="btn">Try Free</a>
-      <a href="/contact.html" class="btn secondary">Contact</a>
-    </div>
-  </div>
-</header>
-  <div style="max-width:980px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:12px 16px;">
-    <img src="logo.png" alt="Logo" style="height:32px;width:auto;border-radius:6px;object-fit:cover">
+<div class="nav-spacer"></div>
+
     <div style="font-weight:700;letter-spacing:.3px;color:#fff;font-size:20px">QuickListing</div>
     <div style="margin-left:auto;font-size:14px;color:#94a3b8;">AI-powered property descriptions</div>
   </div>
@@ -100,9 +92,6 @@ a:hover { text-decoration:none; opacity:.9; }
   <p style="font-size:18px; color:#94a3b8; margin-bottom:24px;">
     AI-powered property descriptions that sell homes faster.
   </p>
-  <a href="#app" 
-     style="background:#22d3ee; color:#0f172a; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:600;">
-     Try it for Free
   </a>
 </section>
 
@@ -121,7 +110,7 @@ a:hover { text-decoration:none; opacity:.9; }
           <button id="example">Use Example</button>
         </div>
         <label>Key features</label>
-        <textarea id="features" rows="6" placeholder="2 bed, 1 bath, renovated kitchen, in-unit laundry, balcony, hardwood floors, near subway"></textarea>
+       <textarea id="features" rows="8" style="font-size:16px;padding:10px;" placeholder="2 bed, 1 bath..."></textarea>
         <div class="row" style="margin-top:8px">
           <div style="flex:1">
             <label>Tone</label>
@@ -228,9 +217,6 @@ a:hover { text-decoration:none; opacity:.9; }
   <footer style="text-align:center;padding:30px 0;color:#94a3b8;border-top:1px solid #1e293b;margin-top:80px;">
   © 2025 QuickListing • Built with ❤️ by Nikita
 </footer>
-  <footer style="text-align:center;padding:16px">
-    © 2025 QuickListing • Built with ❤️ by Nikita
-  </footer>
 
   <!-- ==== Plan Logic Script ==== -->
   <script>
