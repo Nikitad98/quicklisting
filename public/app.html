@@ -1,285 +1,178 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AI Property Description Generator</title>
+  <title>QuickListing — Generator</title>
   <style>
-    /* Brand + link reset */
-a { color:#e5e7eb; text-decoration:none; }
-a:hover { text-decoration:none; opacity:.9; }
-
-.btn { background:#22d3ee; color:#062b33; font-weight:700; padding:10px 14px;
-  border-radius:10px; display:inline-block; transition:.15s; border:1px solid #0ea5b7; }
-.btn:hover { filter:brightness(1.07); transform:translateY(-1px); }
-.btn.alt { background:#111827; color:#e5e7eb; border:1px solid #1f2937; }
-
-/* Navbar brand (logo + wordmark) */
-.brand { display:flex; align-items:center; gap:10px; font-weight:800; font-size:16px; color:#e5e7eb; }
-.brand img { width:28px; height:28px; border-radius:8px; background:#0f172a; }
-
-/* Accent pills, cards */
-.pill { border:1px solid #1f2937; background:#111827; color:#e5e7eb; }
-.card { background:#0f172a; border:1px solid #1f2937; border-radius:16px; }
-
-    :root { --bg:#0f172a; --card:#111827; --ink:#e5e7eb; --muted:#94a3b8; --accent:#22d3ee; }
+    :root{--bg:#0b1220;--card:#111827;--muted:#94a3b8;--ink:#e5e7eb;--cta:#22d3ee;--ring:#1f2937;--shadow:0 12px 40px rgba(0,0,0,.35)}
     *{box-sizing:border-box}
-    body{margin:0; font-family: Inter, system-ui, Arial, sans-serif; background:var(--bg); color:var(--ink);}
-    .wrap{max-width:1200px; margin:40px auto; padding:40px;}
-    .grid{display:grid; grid-template-columns: 1fr 1fr; gap:16px}
-    .card{background:var(--card); border:1px solid #1f2937; border-radius:16px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.25)}
-    h1{font-size:28px; margin:0 0 6px}
-    p.sub{margin:0 0 16px; color:var(--muted)}
-    label{font-size:13px; color:var(--muted)}
-    textarea,select{width:100%; background:#0b1220; color:var(--ink); border:1px solid #263245; border-radius:12px; padding:12px; font-size:14px}
-    button{background:var(--accent); border:0; color:#00323a; font-weight:700; padding:12px 16px; border-radius:12px; cursor:pointer}
-    .row{display:flex; gap:8px; align-items:center}
-    .out{white-space:pre-wrap; line-height:1.6}
-    .title{font-size:18px; font-weight:700}
-    .muted{color:var(--muted)}
-    .pill{border:1px solid #2b3a52; padding:4px 8px; border-radius:999px; font-size:12px}
-    .footer{margin-top:16px; display:flex; gap:8px; flex-wrap:wrap}
-    @media (max-width:900px){ .grid{grid-template-columns:1fr} }
-    /* --- Sleek navbar + buttons --- */
-.nav { position: sticky; top: 0; z-index: 40;
-  background: rgba(2,6,23,.75); backdrop-filter: blur(10px);
-  border-bottom: 1px solid #1f2937;
-}
-.nav-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center;
-  gap: 12px; padding: 12px 16px;
-}
-.brand { display:flex; align-items:center; gap:10px; color:#e5e7eb; font-weight:700; letter-spacing:.3px }
-.brand img { height:28px; width:28px; border-radius:8px; object-fit:cover }
-.nav-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center;
-  gap: 12px; padding: 12px 16px;
-}
-.btn { background:#22d3ee; color:#03262c; font-weight:700; padding:10px 14px; border-radius:10px;
-  text-decoration:none; display:inline-block; }
-.btn.secondary { background:#111827; color:#e5e7eb; border:1px solid #2b3a52 }
+    body{margin:0;background:linear-gradient(180deg,#0b1220,#0a1524 40%,#0b1220);color:var(--ink);font:15px/1.6 system-ui,Inter,Arial}
+    a{color:var(--ink);text-decoration:none}
+    a:hover{opacity:.9}
 
+    .nav{position:sticky;top:0;z-index:40;background:rgba(11,18,32,.85);backdrop-filter:blur(10px);border-bottom:1px solid #132033}
+    .nav-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:12px 16px}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:700}
+    .brand img{width:28px;height:28px;border-radius:8px;filter:saturate(.15) brightness(1.15)}
+    .nav-spacer{margin-left:auto}
+    .btn{background:var(--cta);color:#062e38;font-weight:700;border:0;border-radius:10px;padding:10px 16px;display:inline-block}
+    .btn.secondary{background:#111827;color:#e5e7eb;border:1px solid #1f2937}
 
-/* Hover effects for navbar buttons */
-.btn { transition: all 0.2s ease; }
-.btn:hover {
-  filter: brightness(1.1);
-  transform: translateY(-2px);
-  box-shadow: 0 0 10px rgba(34, 211, 238, 0.4);
-}
+    .wrap{max-width:1200px;margin:0 auto;padding:36px 16px}
+    h1{font-size:30px;margin:0 0 6px}
+    p.sub{color:var(--muted);margin:0 0 18px}
 
-  </style>    
+    /* Bigger generator */
+    #app{max-width:none;margin:24px auto 0; padding:0}
+    .grid{display:grid;grid-template-columns:1.05fr .95fr;gap:18px}
+    .card{background:var(--card);border:1px solid var(--ring);border-radius:16px;padding:18px;box-shadow:var(--shadow)}
+    .row{display:flex;gap:8px;align-items:center}
+    textarea,select{width:100%;background:#0b1220;color:var(--ink);border:1px solid #1f2937;border-radius:10px;padding:10px}
+    textarea{min-height:190px;font-family:ui-monospace,Consolas,monospace}
+    .pill{border:1px solid #1f2937;background:#0f172a;border-radius:10px;padding:6px 10px;font-weight:700}
+    .out{white-space:pre-wrap;line-height:1.6}
+    footer{color:#a7bed6;text-align:center;padding:28px 0;border-top:1px solid #122035;margin-top:28px}
+
+    @media (max-width:980px){.grid{grid-template-columns:1fr}}
+  </style>
 </head>
 <body>
-  <!-- Header -->
-<header class="nav">
-  <div class="nav-inner">
-  <a class="brand" href="/">
-  <img src="/logo.svg" alt="QuickListing logo">
-</a>
+  <!-- NAV (no extra “Try Free” button, no “Logo” text) -->
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="/"><img src="/logo.svg" alt="logo"><span>QuickListing</span></a>
+      <div class="nav-spacer"></div>
+      <a href="/upgrade" class="btn secondary">Pricing</a>
+    </div>
+  </header>
 
-<div class="nav-spacer"></div>
+  <main class="wrap">
+    <div id="app">
+      <div class="grid">
+        <!-- LEFT: inputs -->
+        <div class="card">
+          <div class="row" style="justify-content:space-between">
+            <span class="pill">Step 1</span>
+            <button id="example" class="btn">Use Example</button>
+          </div>
 
-    <div style="font-weight:700;letter-spacing:.3px;color:#fff;font-size:20px">QuickListing</div>
-    <div style="margin-left:auto;font-size:14px;color:#94a3b8;">AI-powered property descriptions</div>
-  </div>
-</header>
+          <label style="display:block;margin-top:8px">Key features</label>
+          <textarea id="features" placeholder="2 bed, 1 bath, renovated kitchen, in-unit laundry, balcony, hardwood floors, near subway"></textarea>
 
+          <div class="row" style="margin-top:10px">
+            <div style="flex:1">
+              <label>Tone</label>
+              <select id="tone">
+                <option>Professional</option>
+                <option>Luxury</option>
+                <option>Family-Friendly</option>
+                <option>Student/Value</option>
+                <option>Investor</option>
+              </select>
+            </div>
+            <div style="flex:1">
+              <label>Length</label>
+              <select id="length">
+                <option value="short">Short (2–3 sentences)</option>
+                <option value="medium">Medium (4–6 sentences)</option>
+                <option value="long">Long (1 short paragraph)</option>
+              </select>
+            </div>
+            <div style="flex:1">
+              <label>Audience</label>
+              <select id="aud">
+                <option>Buyers</option>
+                <option>Renters</option>
+                <option>MLS</option>
+              </select>
+            </div>
+          </div>
 
-</header>
-
-<!-- Hero Section -->
-<section style="text-align:center; padding:80px 16px; background:#0f172a; color:#e5e7eb;">
-  <h1 style="font-size:40px; margin-bottom:10px;">QuickListing</h1>
-  <p style="font-size:18px; color:#94a3b8; margin-bottom:24px;">
-    AI-powered property descriptions that sell homes faster.
-  </p>
-  </a>
-</section>
-
-<!-- Main App Section -->
-<div id="app" style="max-width:800px;margin:60px auto;padding:20px;background:#1e293b;border-radius:16px;box-shadow:0 0 20px rgba(0,0,0,0.2);">
-
-
-  <div class="wrap">
-    <h1>AI Property Description Generator</h1>
-    <p class="sub">Enter features, pick tone & length → get a polished title, description, and MLS bullets.</p>
-
-    <div class="grid">
-      <div class="card">
-        <div class="row" style="justify-content:space-between; margin-bottom:8px">
-          <span class="pill">Step 1</span>
-          <button id="example">Use Example</button>
-        </div>
-        <label>Key features</label>
-       <textarea id="features" rows="8" style="font-size:16px;padding:10px;" placeholder="2 bed, 1 bath..."></textarea>
-        <div class="row" style="margin-top:8px">
-          <div style="flex:1">
-            <label>Tone</label>
-            <select id="tone">
-              <option>Professional</option>
-              <option>Luxury</option>
-              <option>Family-Friendly</option>
-              <option>Student/Value</option>
-              <option>Investor</option>
+          <div class="row" style="margin-top:12px">
+            <select id="plan" style="max-width:160px">
+              <option value="free">Free</option>
+              <option value="starter">Starter ($9)</option>
+              <option value="plus">Plus ($25)</option>
             </select>
-          </div>
-          <div style="flex:1">
-            <label>Length</label>
-            <select id="length">
-              <option value="short">Short (2-3 sentences)</option>
-              <option value="medium">Medium (4-6 sentences)</option>
-              <option value="long">Long (1 short paragraph)</option>
-            </select>
-          </div>
-          <div style="flex:1">
-            <label>Audience</label>
-            <select id="audience">
-              <option value="buyers">Buyers</option>
-              <option value="renters">Renters</option>
-              <option value="investors">Investors</option>
-            </select>
+            <button id="gen" class="btn">Generate</button>
+            <button id="clear" class="btn secondary">Clear</button>
           </div>
         </div>
-        <div class="row" style="margin-top:12px">
-          <!-- Plan selector + remaining counter -->
-<div id="planRow" style="margin:12px 0 16px;">
-  <label style="display:block;margin:0 0 6px;color:#94a3b8;font-size:13px">Choose plan</label>
-  <select id="planSel"
-          style="padding:8px;border-radius:10px;background:#0f172a;color:#e5e7eb;border:1px solid #1f2937">
-    <option value="free">Free</option>
-    <option value="starter">Starter ($9)</option>
-    <option value="pro">Pro ($15)</option>
-    <option value="office">Office ($49)</option>
-  </select>
-  <p id="remaining" style="margin:8px 0 0;color:#94a3b8;font-size:13px"></p>
-</div>
 
-          <button id="gen">Generate</button>
-          <button id="clear" style="background:#374151; color:#e5e7eb">Clear</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="row" style="justify-content:space-between; margin-bottom:6px">
-          <span class="pill">Step 2</span>
-          <div class="row">
-            <button id="copyTitle">Copy Title</button>
-            <button id="copyDesc" style="margin-left:6px">Copy Description</button>
+        <!-- RIGHT: output -->
+        <div class="card">
+          <div class="row" style="justify-content:space-between">
+            <span class="pill">Step 2</span>
+            <div class="row">
+              <button id="copyTitle" class="btn secondary">Copy Title</button>
+              <button id="copyDesc" class="btn secondary">Copy Description</button>
+            </div>
           </div>
-        </div>
-        <div class="title" id="title">(Title will appear here)</div>
-        <div id="desc" class="out" style="margin-top:8px">No description yet.</div>
-        <div style="margin-top:12px">
-          <div class="muted" style="margin-bottom:6px">MLS-style bullets:</div>
-          <ul id="bullets" class="out" style="margin:0 0 8px 18px"></ul>
-        </div>
-        <div class="footer">
-          <span class="pill">Tone: <span id="toneTag">—</span></span>
-          <span class="pill">Length: <span id="lengthTag">—</span></span>
-          <span class="pill">Audience: <span id="audTag">—</span></span>
+
+          <h3 id="title" style="margin:10px 0 6px">(Title will appear here)</h3>
+          <div id="desc" class="out muted">No description yet.</div>
+
+          <div style="margin-top:12px">
+            <div class="row">
+              <span class="pill">Tone: <span id="toneTag">Professional</span></span>
+              <span class="pill">Length: <span id="lenTag">Short (2–3 sentences)</span></span>
+              <span class="pill">Audience: <span id="audTag">buyers</span></span>
+            </div>
+            <div id="bullets" class="out" style="margin-top:10px"></div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+  </main>
 
+  <footer>© 2025 QuickListing • Built with ❤️ by Nikita</footer>
+
+  <!-- Minimal client script to call your /generate -->
   <script>
-    const el=id=>document.getElementById(id);
-    const features=el('features'),tone=el('tone'),lengthSel=el('length'),audience=el('audience');
-    const gen=el('gen'),clearBtn=el('clear'),example=el('example');
-    const title=el('title'),desc=el('desc'),bullets=el('bullets');
-    const copyTitle=el('copyTitle'),copyDesc=el('copyDesc');
-    const toneTag=el('toneTag'),lengthTag=el('lengthTag'),audTag=el('audTag');
+    const el = s => document.querySelector(s);
+    const features = el('#features'), tone = el('#tone'), lengthSel = el('#length'), aud = el('#aud');
+    const plan = el('#plan'), gen = el('#gen'), clearBtn = el('#clear');
+    const title = el('#title'), desc = el('#desc'), bullets = el('#bullets');
+    const toneTag = el('#toneTag'), lenTag = el('#lenTag'), audTag = el('#audTag');
 
-    example.onclick=()=>{features.value=`2 bed, 1 bath, 820 sq ft, renovated kitchen with quartz counters, stainless steel appliances, in-unit laundry, private balcony, hardwood floors, elevator building, steps to subway, pet-friendly`};
-
-    function setTags(){toneTag.textContent=tone.value; lengthTag.textContent=lengthSel.options[lengthSel.selectedIndex].text; audTag.textContent=audience.value;}
-    [tone,lengthSel,audience].forEach(x=>x.addEventListener('change',setTags)); setTags();
-
-    gen.onclick=async()=>{
-      const payload={features:features.value.trim(),tone:tone.value,length:lengthSel.value,audience:audience.value};
-      if(!payload.features){alert('Please enter some features.');return;}
-      desc.textContent='Generating…'; title.textContent='(Working…)'; bullets.innerHTML='';
-      try{
-        const res=await fetch('/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-        const data=await res.json();
-        if(data.error) throw new Error(data.error);
-        title.textContent=data.meta?.title||'Suggested Listing Title';
-        desc.textContent=data.description||'—';
-        bullets.innerHTML=(data.meta?.bullets||[]).map(b=>`<li>${b}</li>`).join('');
-        setTags();
-      }catch(e){title.textContent='(Error)'; desc.textContent='Could not generate. Check server and API key.';}
+    el('#example').onclick = () => {
+      features.value = "2 bed, 1 bath, renovated kitchen, in-unit laundry, balcony, hardwood floors, near subway";
     };
-
-    clearBtn.onclick=()=>{features.value=''; title.textContent='(Title will appear here)'; desc.textContent='No description yet.'; bullets.innerHTML='';};
-
-    copyTitle.onclick=async()=>{await navigator.clipboard.writeText(title.textContent); copyTitle.textContent='Copied!'; setTimeout(()=>copyTitle.textContent='Copy Title',1000)};
-    copyDesc.onclick=async()=>{await navigator.clipboard.writeText(desc.textContent); copyDesc.textContent='Copied!'; setTimeout(()=>copyDesc.textContent='Copy Description',1000)};
-  </script>
-  <footer style="text-align:center;padding:30px 0;color:#94a3b8;border-top:1px solid #1e293b;margin-top:80px;">
-  © 2025 QuickListing • Built with ❤️ by Nikita
-</footer>
-
-  <!-- ==== Plan Logic Script ==== -->
-  <script>
-    const planSel = document.getElementById('planSel');
-    const remaining = document.getElementById('remaining') || (() => {
-      const p = document.createElement('p');
-      p.id = 'remaining';
-      p.style.color = '#94a3b8';
-      document.querySelector('.wrap')?.prepend(p);
-      return p;
-    })();
+    clearBtn.onclick = () => { features.value=""; title.textContent="(Title will appear here)"; desc.textContent="No description yet."; bullets.textContent=""; };
 
     async function callGenerate(payload){
-      const headers = {
-        'Content-Type': 'application/json',
-        'x-plan': planSel.value
-      };
-      const res = await fetch('/generate', { method:'POST', headers, body: JSON.stringify(payload) });
-
-      // show remaining from headers
-      const r = res.headers.get('X-Remaining');
-      const plan = res.headers.get('X-Plan');
-      if (r !== null) remaining.textContent = `Plan: ${plan} • Remaining this month: ${r}`;
-
-      if (!res.ok) {
-        const err = await res.json().catch(()=>({error:'Error'}));
-        alert(err.error || 'Error');
-        return null;
-      }
-
-      return res.json();
+      const res = await fetch('/generate', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload)
+      });
+      if(!res.ok){ throw new Error('Request failed'); }
+      return await res.json();
     }
+
+    gen.onclick = async () => {
+      desc.textContent = 'Generating…';
+      toneTag.textContent = tone.value;
+      lenTag.textContent = lengthSel.selectedOptions[0].text;
+      audTag.textContent = aud.value.toLowerCase();
+      try{
+        const data = await callGenerate({
+          features: features.value, tone: tone.value,
+          length: lengthSel.value, audience: aud.value, plan: plan.value
+        });
+        title.textContent = data.meta?.title || 'Listing Title';
+        desc.textContent = data.description || '(no description)';
+        if (data.meta?.bullets?.length){
+          bullets.innerHTML = "MLS-style bullets:\n" + data.meta.bullets.map(b => "• " + b).join("\n");
+        } else { bullets.textContent = ""; }
+      }catch(e){
+        desc.textContent = '(Error)';
+      }
+    };
+
+    el('#copyTitle').onclick = async () => { await navigator.clipboard.writeText(title.textContent); };
+    el('#copyDesc').onclick = async () => { await navigator.clipboard.writeText(desc.textContent); };
   </script>
-</body>
-</html>
-
-<script>
-async function callGenerate(payload) {
-  const res = await fetch('/generate', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify(payload)
-  });
-
-  const remaining = res.headers.get('X-Remaining');
-  if (remaining !== null) {
-    const el = document.getElementById('remaining') || (() => {
-      const p=document.createElement('p'); p.id='remaining'; p.style.color='#94a3b8';
-      document.querySelector('.wrap')?.prepend(p); return p;
-    })();
-    el.textContent = `Remaining this month: ${remaining}`;
-  }
-
-  if (!res.ok) {
-    const msg = (await res.json().catch(()=>({error:'Error'}))).error || 'Error';
-    alert(msg);
-    return null;
-  }
-  return res.json();
-}
-</script>
-</body>
-</html>
-
 </body>
 </html>
