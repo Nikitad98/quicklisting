@@ -1,2 +1,4 @@
-node_modules
+Falsenode_modules
 .env
+.DS_Store
+
