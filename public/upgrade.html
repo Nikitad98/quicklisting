@@ -41,7 +41,8 @@
         <li>Priority processing</li>
         <li>Email support</li>
       </ul>
-      <a href="#" class="btn block">Subscribe Starter</a>
+      <!-- Starter → Stripe Checkout -->
+      <a class="btn block" onclick="startCheckout('starter')">Subscribe Starter</a>
     </div>
 
     <div class="plan">
@@ -52,7 +53,8 @@
         <li>Faster responses</li>
         <li>Team support</li>
       </ul>
-      <a href="#" class="btn block">Subscribe Growth</a>
+      <!-- Growth → Stripe Checkout -->
+      <a class="btn block" onclick="startCheckout('growth')">Subscribe Growth</a>
     </div>
   </div>
 </main>
@@ -67,6 +69,31 @@
     </nav>
   </div>
 </footer>
+
+<script>
+  async function startCheckout(plan) {
+    try {
+      const response = await fetch("/create-checkout-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ plan })
+      });
+
+      const data = await response.json();
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || "Checkout error");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong. Please try again.");
+    }
+  }
+</script>
 
 </body>
 </html>
