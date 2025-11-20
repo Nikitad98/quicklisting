@@ -14,6 +14,10 @@ app.use(express.urlencoded({ extended: true })); // for form posts if needed
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // ---- Stripe setup -----------------------------------------------------------
+console.log("STRIPE_SECRET_KEY preview:", JSON.stringify((process.env.STRIPE_SECRET_KEY || "").slice(0, 15)));
+console.log("STARTER_PRICE_ID:", JSON.stringify(process.env.STRIPE_STARTER_PRICE_ID || ""));
+console.log("GROWTH_PRICE_ID:", JSON.stringify(process.env.STRIPE_GROWTH_PRICE_ID || ""));
+
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
 const STARTER_PRICE_ID = process.env.STRIPE_STARTER_PRICE_ID;
