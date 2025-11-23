@@ -1,0 +1,149 @@
+[1mdiff --git a/public/app.html b/public/app.html[m
+[1mindex 7ef8317..ed95e4e 100644[m
+[1m--- a/public/app.html[m
+[1m+++ b/public/app.html[m
+[36m@@ -1,178 +1,252 @@[m
+ <!doctype html>[m
+ <html lang="en">[m
+ <head>[m
+[31m-  <meta charset="utf-8" />[m
+[31m-  <meta name="viewport" content="width=device-width, initial-scale=1" />[m
+[31m-  <title>QuickListing — Generator</title>[m
+[32m+[m[32m  <meta charset="utf-8"/>[m
+[32m+[m[32m  <meta name="viewport" content="width=device-width,initial-scale=1"/>[m
+[32m+[m[32m  <title>QuickListing — App</title>[m
+[32m+[m[32m  <link rel="stylesheet" href="/styles.css"/>[m
+   <style>[m
+[31m-    :root{--bg:#0b1220;--card:#111827;--muted:#94a3b8;--ink:#e5e7eb;--cta:#22d3ee;--ring:#1f2937;--shadow:0 12px 40px rgba(0,0,0,.35)}[m
+[31m-    *{box-sizing:border-box}[m
+[31m-    body{margin:0;background:linear-gradient(180deg,#0b1220,#0a1524 40%,#0b1220);color:var(--ink);font:15px/1.6 system-ui,Inter,Arial}[m
+[31m-    a{color:var(--ink);text-decoration:none}[m
+[31m-    a:hover{opacity:.9}[m
+[31m-[m
+[31m-    .nav{position:sticky;top:0;z-index:40;background:rgba(11,18,32,.85);backdrop-filter:blur(10px);border-bottom:1px solid #132033}[m
+[31m-    .nav-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:12px 16px}[m
+[31m-    .brand{display:flex;align-items:center;gap:10px;font-weight:700}[m
+[31m-    .brand img{width:28px;height:28px;border-radius:8px;filter:saturate(.15) brightness(1.15)}[m
+[31m-    .nav-spacer{margin-left:auto}[m
+[31m-    .btn{background:var(--cta);color:#062e38;font-weight:700;border:0;border-radius:10px;padding:10px 16px;display:inline-block}[m
+[31m-    .btn.secondary{background:#111827;color:#e5e7eb;border:1px solid #1f2937}[m
+[31m-[m
+[31m-    .wrap{max-width:1200px;margin:0 auto;padding:36px 16px}[m
+[31m-    h1{font-size:30px;margin:0 0 6px}[m
+[31m-    p.sub{color:var(--muted);margin:0 0 18px}[m
+[31m-[m
+[31m-    /* Bigger generator */[m
+[31m-    #app{max-width:none;margin:24px auto 0; padding:0}[m
+[31m-    .grid{display:grid;grid-template-columns:1.05fr .95fr;gap:18px}[m
+[31m-    .card{background:var(--card);border:1px solid var(--ring);border-radius:16px;padding:18px;box-shadow:var(--shadow)}[m
+[31m-    .row{display:flex;gap:8px;align-items:center}[m
+[31m-    textarea,select{width:100%;background:#0b1220;color:var(--ink);border:1px solid #1f2937;border-radius:10px;padding:10px}[m
+[31m-    textarea{min-height:190px;font-family:ui-monospace,Consolas,monospace}[m
+[31m-    .pill{border:1px solid #1f2937;background:#0f172a;border-radius:10px;padding:6px 10px;font-weight:700}[m
+[31m-    .out{white-space:pre-wrap;line-height:1.6}[m
+[31m-    footer{color:#a7bed6;text-align:center;padding:28px 0;border-top:1px solid #122035;margin-top:28px}[m
+[31m-[m
+[31m-    @media (max-width:980px){.grid{grid-template-columns:1fr}}[m
+[32m+[m[32m    /* small app-only tweaks */[m
+[32m+[m[32m    .app-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}[m
+[32m+[m[32m    .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}[m
+[32m+[m[32m    .panel h2{margin:0 0 10px}[m
+[32m+[m[32m    .row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px}[m
+[32m+[m[32m    .actions{display:flex;gap:10px;margin-top:12px}[m
+[32m+[m[32m    .muted{color:#c1c9d5;font-size:14px}[m
+[32m+[m[32m    .out-title{font-size:20px;font-weight:800;margin:0 0 6px}[m
+[32m+[m[32m    .bullets{margin:8px 0 12px 18px}[m
+[32m+[m[32m    .desc{white-space:pre-wrap;line-height:1.5}[m
+[32m+[m[32m    .top-actions{display:flex;gap:8px;justify-content:flex-end;margin-bottom:8px}[m
+[32m+[m[32m    .small-btn{padding:6px 10px;border-radius:8px;font-weight:700;font-size:13px}[m
+[32m+[m[32m    @media(max-width:980px){.app-grid{grid-template-columns:1fr}.row{grid-template-columns:1fr}}[m
+   </style>[m
+ </head>[m
+ <body>[m
+[31m-  <!-- NAV (no extra “Try Free” button, no “Logo” text) -->[m
+[31m-  <header class="nav">[m
+[31m-    <div class="nav-inner">[m
+[31m-      <a class="brand" href="/"><img src="/logo.svg" alt="logo"><span>QuickListing</span></a>[m
+[31m-      <div class="nav-spacer"></div>[m
+[31m-      <a href="/upgrade" class="btn secondary">Pricing</a>[m
+[31m-    </div>[m
+[31m-  </header>[m
+[31m-[m
+[31m-  <main class="wrap">[m
+[31m-    <div id="app">[m
+[31m-      <div class="grid">[m
+[31m-        <!-- LEFT: inputs -->[m
+[31m-        <div class="card">[m
+[31m-          <div class="row" style="justify-content:space-between">[m
+[31m-            <span class="pill">Step 1</span>[m
+[31m-            <button id="example" class="btn">Use Example</button>[m
+[31m-          </div>[m
+[31m-[m
+[31m-          <label style="display:block;margin-top:8px">Key features</label>[m
+[31m-          <textarea id="features" placeholder="2 bed, 1 bath, renovated kitchen, in-unit laundry, balcony, hardwood floors, near subway"></textarea>[m
+[31m-[m
+[31m-          <div class="row" style="margin-top:10px">[m
+[31m-            <div style="flex:1">[m
+[31m-              <label>Tone</label>[m
+[31m-              <select id="tone">[m
+[31m-                <option>Professional</option>[m
+[31m-                <option>Luxury</option>[m
+[31m-                <option>Family-Friendly</option>[m
+[31m-                <option>Student/Value</option>[m
+[31m-                <option>Investor</option>[m
+[31m-              </select>[m
+[31m-            </div>[m
+[31m-            <div style="flex:1">[m
+[31m-              <label>Length</label>[m
+[31m-              <select id="length">[m
+[31m-                <option value="short">Short (2–3 sentences)</option>[m
+[31m-                <option value="medium">Medium (4–6 sentences)</option>[m
+[31m-                <option value="long">Long (1 short paragraph)</option>[m
+[31m-              </select>[m
+[31m-            </div>[m
+[31m-            <div style="flex:1">[m
+[31m-              <label>Audience</label>[m
+[31m-              <select id="aud">[m
+[31m-                <option>Buyers</option>[m
+[31m-                <option>Renters</option>[m
+[31m-                <option>MLS</option>[m
+[31m-              </select>[m
+[31m-            </div>[m
+[31m-          </div>[m
+[31m-[m
+[31m-          <div class="row" style="margin-top:12px">[m
+[31m-            <select id="plan" style="max-width:160px">[m
+[31m-              <option value="free">Free</option>[m
+[31m-              <option value="starter">Starter ($9)</option>[m
+[31m-              <option value="plus">Plus ($25)</option>[m
+[31m-            </select>[m
+[31m-            <button id="gen" class="btn">Generate</button>[m
+[31m-            <button id="clear" class="btn secondary">Clear</button>[m
+[31m-          </div>[m
+[32m+[m
+[32m+[m[32m<header class="nav">[m
+[32m+[m[32m  <div class="container nav-row">[m
+[32m+[m[32m    <a class="brand" href="/"><img src="/logo.svg" alt=""/>QuickListing</a>[m
+[32m+[m[32m    <nav class="nav-actions">[m
+[32m+[m[32m      <a href="/upgrade" class="btn ghost">Upgrade</a>[m
+[32m+[m[32m    </nav>[m
+[32m+[m[32m  </div>[m
+[32m+[m[32m</header>[m
+[32m+[m
+[32m+[m[32m<main class="container" style="padding:24px 0">[m
+[32m+[m[32m  <div class="app-grid">[m
+[32m+[m
+[32m+[m[32m    <!-- LEFT -->[m
+[32m+[m[32m    <section class="panel">[m
+[32m+[m[32m      <div style="display:flex;align-items:center;justify-content:space-between;">[m
+[32m+[m[32m        <h2>Step 1</h2>[m
+[32m+[m[32m        <button id="useExample" class="btn small-btn" type="button">Use Example</button>[m
+[32m+[m[32m      </div>[m
+[32m+[m
+[32m+[m[32m      <label class="muted" for="features">Key features</label>[m
+[32m+[m[32m      <textarea id="features" rows="9" placeholder="2 bed, 1 bath, renovated kitchen, in-unit laundry, balcony, etc."></textarea>[m
+[32m+[m
+[32m+[m[32m      <div class="row">[m
+[32m+[m[32m        <div>[m
+[32m+[m[32m          <label class="muted">Tone</label>[m
+[32m+[m[32m     

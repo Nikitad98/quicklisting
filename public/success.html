@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>QuickListing — Success</title>
+  <link rel="stylesheet" href="/styles.css"/>
+  <style>
+    .success-wrap{
+      min-height:70vh; display:grid; place-items:center; padding:40px 0;
+    }
+    .success-card{
+      width:min(640px,92vw);
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:24px;
+      text-align:center;
+      box-shadow:0 10px 30px rgba(0,0,0,.3);
+    }
+    .success-card h1{margin:6px 0 8px; font-size:34px;}
+    .success-card p{color:#c1c9d5; margin:0 0 14px;}
+    .steps{
+      text-align:left; margin:18px auto; max-width:460px; color:#e5e7eb;
+    }
+    .steps li{margin:8px 0;}
+    .pill{
+      display:inline-block; padding:6px 10px; border-radius:999px;
+      background:#0e1626; border:1px solid var(--line); color:#c1c9d5; font-size:13px;
+    }
+  </style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="container nav-row">
+    <a class="brand" href="/"><img src="/logo.svg" alt=""/>QuickListing</a>
+    <nav class="nav-actions">
+      <a href="/app" class="btn ghost">Open App</a>
+    </nav>
+  </div>
+</header>
+
+<main class="container success-wrap">
+  <div class="success-card">
+    <div class="pill">Payment successful</div>
+    <h1>You’re upgraded 🎉</h1>
+    <p>
+      Your plan is active and your monthly limit is unlocked.
+      Thanks for supporting QuickListing.
+    </p>
+
+    <ul class="steps">
+      <li><strong>1.</strong> Go to the app</li>
+      <li><strong>2.</strong> Paste property features</li>
+      <li><strong>3.</strong> Click Generate and copy your listing</li>
+    </ul>
+
+    <div style="display:grid; gap:10px; margin-top:14px;">
+      <a class="btn block" href="/app">Start Generating</a>
+      <a class="btn ghost block" href="/upgrade">View Plan Details</a>
+    </div>
+
+    <p style="margin-top:14px; font-size:13px;">
+      If anything looks wrong, just email support and we’ll fix it fast.
+    </p>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="container footrow">
+    <span>© 2025 QuickListing</span>
+    <nav class="footnav">
+      <a href="/app">App</a>
+      <a href="/#pricing">Pricing</a>
+      <a href="/upgrade">Upgrade</a>
+    </nav>
+  </div>
+</footer>
+
+</body>
+</html>

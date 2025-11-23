@@ -1,23 +1,45 @@
-// server.js — QuickListing (with Stripe Checkout)
+// server.js — QuickListing (Upstash Redis caps + Boss unlimited + Stripe Checkout)
 // ---------------------------------------------------
 const path = require("path");
 const express = require("express");
 const { OpenAI } = require("openai");
 const Stripe = require("stripe");
+const cookieParser = require("cookie-parser");
+const crypto = require("crypto");
+const { Redis } = require("@upstash/redis");
 require("dotenv").config();
 
 const app = express();
 app.use(express.json());
-app.use(express.urlencoded({ extended: true })); // for form posts if needed
+app.use(express.urlencoded({ extended: true }));
 
-// ---- OpenAI client ----------------------------------------------------------
+// ---- Cookies (visitor id) --------------------------------------------------
+app.use(cookieParser(process.env.COOKIE_SECRET || "ql_cookie_secret"));
+
+function getVisitorId(req, res){
+  let id = req.signedCookies?.ql_vid;
+  if (!id) {
+    id = crypto.randomUUID();
+    res.cookie("ql_vid", id, {
+      signed: true,
+      httpOnly: true,
+      sameSite: "lax",
+      maxAge: 1000 * 60 * 60 * 24 * 365, // 1 year
+    });
+  }
+  return id;
+}
+
+// ---- Upstash Redis ---------------------------------------------------------
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
+
+// ---- OpenAI ----------------------------------------------------------------
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// ---- Stripe setup -----------------------------------------------------------
-console.log("STRIPE_SECRET_KEY preview:", JSON.stringify((process.env.STRIPE_SECRET_KEY || "").slice(0, 15)));
-console.log("STARTER_PRICE_ID:", JSON.stringify(process.env.STRIPE_STARTER_PRICE_ID || ""));
-console.log("GROWTH_PRICE_ID:", JSON.stringify(process.env.STRIPE_GROWTH_PRICE_ID || ""));
-
+// ---- Stripe ----------------------------------------------------------------
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
 const STARTER_PRICE_ID = process.env.STRIPE_STARTER_PRICE_ID;
@@ -33,46 +55,73 @@ app.use(express.static(path.join(__dirname, "public")));
 app.get("/",       (_,res)=>res.sendFile(path.join(__dirname,"public","landing.html")));
 app.get("/app",    (_,res)=>res.sendFile(path.join(__dirname,"public","app.html")));
 app.get("/upgrade",(_,res)=>res.sendFile(path.join(__dirname,"public","upgrade.html")));
+app.get("/success",(_,res)=>res.sendFile(path.join(__dirname,"public","success.html")));
 
 // ---- Health -----------------------------------------------------------------
-app.get("/version",(_,res)=>res.json({ ok:true, app:"QuickListing", version:"1.0.0" }));
+app.get("/version",(_,res)=>res.json({ ok:true, app:"QuickListing", version:"1.2.0-boss-redis" }));
 
 // ============================================================================
-// OPTIONAL: plan / cap middleware (keep if you need the simple caps by header)
+// Plan caps (persistent via Redis per visitor + Boss bypass)
 // ============================================================================
 // Plans: free → 10/mo, starter → 150/mo, growth → 500/mo
 const CAPS = { free: 10, starter: 150, growth: 500 };
-const usageByIp = new Map(); // { ip -> { month, plan, used } }
 
 function getPlan(req){
-  // Accept a lightweight signal from client or Stripe in future
   const p = (req.headers["x-plan"] || "free").toString().toLowerCase().trim();
   return ["free","starter","growth"].includes(p) ? p : "free";
 }
 
-// Count only /generate POST calls, once per month per IP (+plan)
-app.use((req, res, next) => {
+// Count only /generate POST calls, once per month per visitor
+// + Boss/admin bypass
+app.use(async (req, res, next) => {
   if (req.path !== "/generate") return next();
 
-  const ip =
-    (req.headers["x-forwarded-for"] || "").toString().split(",")[0].trim() ||
-    req.socket?.remoteAddress ||
-    req.ip ||
-    "unknown";
+  // ---------- Boss bypass ----------
+  const adminKeyHeader = (req.headers["x-admin-key"] || "").toString().trim();
+  if (adminKeyHeader && adminKeyHeader === process.env.ADMIN_KEY) {
+    res.setHeader("X-Plan", "boss");
+    res.setHeader("X-Remaining", "∞");
+    return next();
+  }
+  // -------------------------------
+
+  const visitorId = getVisitorId(req, res);
+  const plan = getPlan(req);
 
   const now = new Date();
   const month = now.getUTCFullYear() + "-" + String(now.getUTCMonth()+1).padStart(2,"0");
-  const plan = getPlan(req);
+  const limit = CAPS[plan];
 
-  const rec = usageByIp.get(ip) || { month, plan, used: 0 };
-  if (rec.month !== month) { rec.month = month; rec.used = 0; }
+  const key = `usage:${visitorId}`;
+
+  let rec;
+  try {
+    rec = await redis.get(key);
+  } catch (err) {
+    console.error("Redis read error:", err?.message || err);
+    rec = null;
+  }
+
+  if (!rec || typeof rec !== "object") rec = { month, plan, used: 0 };
+
+  if (rec.month !== month) {
+    rec.month = month;
+    rec.used = 0;
+  }
+
   rec.plan = plan;
   rec.used += 1;
 
-  usageByIp.set(ip, rec);
+  try {
+    await redis.set(key, rec, { ex: 60 * 60 * 24 * 40 }); // ~40 days
+  } catch (err) {
+    console.error("Redis write error:", err?.message || err);
+    // If Redis fails, allow temporarily instead of killing app.
+    res.setHeader("X-Plan", plan);
+    res.setHeader("X-Remaining", limit);
+    return next();
+  }
 
-  const limit = CAPS[plan];
-  // expose plan/remaining for the frontend to show a little meter
   res.setHeader("X-Plan", plan);
   res.setHeader("X-Remaining", Math.max(0, limit - rec.used));
 
@@ -82,11 +131,12 @@ app.use((req, res, next) => {
       plan, limit, used: rec.used
     });
   }
+
   next();
 });
 
 // ============================================================================
-// /generate — main listing generator
+// /generate — listing generator
 // ============================================================================
 app.post("/generate", async (req, res) => {
   try {
@@ -135,22 +185,13 @@ app.post("/create-checkout-session", async (req, res) => {
     const { plan } = req.body || {};
 
     let priceId;
-    if (plan === "starter") {
-      priceId = STARTER_PRICE_ID;
-    } else if (plan === "growth") {
-      priceId = GROWTH_PRICE_ID;
-    } else {
-      return res.status(400).json({ error: "Invalid plan selected" });
-    }
+    if (plan === "starter") priceId = STARTER_PRICE_ID;
+    else if (plan === "growth") priceId = GROWTH_PRICE_ID;
+    else return res.status(400).json({ error: "Invalid plan selected" });
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
+      line_items: [{ price: priceId, quantity: 1 }],
       success_url: SUCCESS_URL + "?session_id={CHECKOUT_SESSION_ID}",
       cancel_url: CANCEL_URL,
       billing_address_collection: "auto",
