@@ -152,7 +152,6 @@
       body: JSON.stringify(body)
     });
 
-    // show upgrade popup on limit
     if (res.status === 402) {
       showUpgradeModal();
       throw new Error("Limit reached");
@@ -163,7 +162,6 @@
       throw new Error(err.error || "Server error");
     }
 
-    // show remaining in footer meter (reads response headers)
     const plan = res.headers.get("X-Plan") || "free";
     const remaining = res.headers.get("X-Remaining") || "";
     const meter = document.getElementById("meter");
