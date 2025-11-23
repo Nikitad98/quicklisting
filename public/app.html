@@ -1,178 +1,252 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>QuickListing — Generator</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>QuickListing — App</title>
+  <link rel="stylesheet" href="/styles.css"/>
   <style>
-    :root{--bg:#0b1220;--card:#111827;--muted:#94a3b8;--ink:#e5e7eb;--cta:#22d3ee;--ring:#1f2937;--shadow:0 12px 40px rgba(0,0,0,.35)}
-    *{box-sizing:border-box}
-    body{margin:0;background:linear-gradient(180deg,#0b1220,#0a1524 40%,#0b1220);color:var(--ink);font:15px/1.6 system-ui,Inter,Arial}
-    a{color:var(--ink);text-decoration:none}
-    a:hover{opacity:.9}
-
-    .nav{position:sticky;top:0;z-index:40;background:rgba(11,18,32,.85);backdrop-filter:blur(10px);border-bottom:1px solid #132033}
-    .nav-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:12px 16px}
-    .brand{display:flex;align-items:center;gap:10px;font-weight:700}
-    .brand img{width:28px;height:28px;border-radius:8px;filter:saturate(.15) brightness(1.15)}
-    .nav-spacer{margin-left:auto}
-    .btn{background:var(--cta);color:#062e38;font-weight:700;border:0;border-radius:10px;padding:10px 16px;display:inline-block}
-    .btn.secondary{background:#111827;color:#e5e7eb;border:1px solid #1f2937}
-
-    .wrap{max-width:1200px;margin:0 auto;padding:36px 16px}
-    h1{font-size:30px;margin:0 0 6px}
-    p.sub{color:var(--muted);margin:0 0 18px}
-
-    /* Bigger generator */
-    #app{max-width:none;margin:24px auto 0; padding:0}
-    .grid{display:grid;grid-template-columns:1.05fr .95fr;gap:18px}
-    .card{background:var(--card);border:1px solid var(--ring);border-radius:16px;padding:18px;box-shadow:var(--shadow)}
-    .row{display:flex;gap:8px;align-items:center}
-    textarea,select{width:100%;background:#0b1220;color:var(--ink);border:1px solid #1f2937;border-radius:10px;padding:10px}
-    textarea{min-height:190px;font-family:ui-monospace,Consolas,monospace}
-    .pill{border:1px solid #1f2937;background:#0f172a;border-radius:10px;padding:6px 10px;font-weight:700}
-    .out{white-space:pre-wrap;line-height:1.6}
-    footer{color:#a7bed6;text-align:center;padding:28px 0;border-top:1px solid #122035;margin-top:28px}
-
-    @media (max-width:980px){.grid{grid-template-columns:1fr}}
+    /* small app-only tweaks */
+    .app-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+    .panel h2{margin:0 0 10px}
+    .row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px}
+    .actions{display:flex;gap:10px;margin-top:12px}
+    .muted{color:#c1c9d5;font-size:14px}
+    .out-title{font-size:20px;font-weight:800;margin:0 0 6px}
+    .bullets{margin:8px 0 12px 18px}
+    .desc{white-space:pre-wrap;line-height:1.5}
+    .top-actions{display:flex;gap:8px;justify-content:flex-end;margin-bottom:8px}
+    .small-btn{padding:6px 10px;border-radius:8px;font-weight:700;font-size:13px}
+    @media(max-width:980px){.app-grid{grid-template-columns:1fr}.row{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
-  <!-- NAV (no extra “Try Free” button, no “Logo” text) -->
-  <header class="nav">
-    <div class="nav-inner">
-      <a class="brand" href="/"><img src="/logo.svg" alt="logo"><span>QuickListing</span></a>
-      <div class="nav-spacer"></div>
-      <a href="/upgrade" class="btn secondary">Pricing</a>
-    </div>
-  </header>
 
-  <main class="wrap">
-    <div id="app">
-      <div class="grid">
-        <!-- LEFT: inputs -->
-        <div class="card">
-          <div class="row" style="justify-content:space-between">
-            <span class="pill">Step 1</span>
-            <button id="example" class="btn">Use Example</button>
-          </div>
+<header class="nav">
+  <div class="container nav-row">
+    <a class="brand" href="/"><img src="/logo.svg" alt=""/>QuickListing</a>
+    <nav class="nav-actions">
+      <a href="/upgrade" class="btn ghost">Upgrade</a>
+    </nav>
+  </div>
+</header>
 
-          <label style="display:block;margin-top:8px">Key features</label>
-          <textarea id="features" placeholder="2 bed, 1 bath, renovated kitchen, in-unit laundry, balcony, hardwood floors, near subway"></textarea>
+<main class="container" style="padding:24px 0">
+  <div class="app-grid">
 
-          <div class="row" style="margin-top:10px">
-            <div style="flex:1">
-              <label>Tone</label>
-              <select id="tone">
-                <option>Professional</option>
-                <option>Luxury</option>
-                <option>Family-Friendly</option>
-                <option>Student/Value</option>
-                <option>Investor</option>
-              </select>
-            </div>
-            <div style="flex:1">
-              <label>Length</label>
-              <select id="length">
-                <option value="short">Short (2–3 sentences)</option>
-                <option value="medium">Medium (4–6 sentences)</option>
-                <option value="long">Long (1 short paragraph)</option>
-              </select>
-            </div>
-            <div style="flex:1">
-              <label>Audience</label>
-              <select id="aud">
-                <option>Buyers</option>
-                <option>Renters</option>
-                <option>MLS</option>
-              </select>
-            </div>
-          </div>
+    <!-- LEFT -->
+    <section class="panel">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <h2>Step 1</h2>
+        <button id="useExample" class="btn small-btn" type="button">Use Example</button>
+      </div>
 
-          <div class="row" style="margin-top:12px">
-            <select id="plan" style="max-width:160px">
-              <option value="free">Free</option>
-              <option value="starter">Starter ($9)</option>
-              <option value="plus">Plus ($25)</option>
-            </select>
-            <button id="gen" class="btn">Generate</button>
-            <button id="clear" class="btn secondary">Clear</button>
-          </div>
+      <label class="muted" for="features">Key features</label>
+      <textarea id="features" rows="9" placeholder="2 bed, 1 bath, renovated kitchen, in-unit laundry, balcony, etc."></textarea>
+
+      <div class="row">
+        <div>
+          <label class="muted">Tone</label>
+          <select id="tone">
+            <option>Professional</option>
+            <option>Warm</option>
+            <option>Luxury</option>
+            <option>Casual</option>
+          </select>
         </div>
 
-        <!-- RIGHT: output -->
-        <div class="card">
-          <div class="row" style="justify-content:space-between">
-            <span class="pill">Step 2</span>
-            <div class="row">
-              <button id="copyTitle" class="btn secondary">Copy Title</button>
-              <button id="copyDesc" class="btn secondary">Copy Description</button>
-            </div>
-          </div>
+        <div>
+          <label class="muted">Length</label>
+          <select id="length">
+            <option value="short">Short (2–3 sentences)</option>
+            <option value="medium">Medium (1 paragraph)</option>
+            <option value="long">Long (2 paragraphs)</option>
+          </select>
+        </div>
 
-          <h3 id="title" style="margin:10px 0 6px">(Title will appear here)</h3>
-          <div id="desc" class="out muted">No description yet.</div>
-
-          <div style="margin-top:12px">
-            <div class="row">
-              <span class="pill">Tone: <span id="toneTag">Professional</span></span>
-              <span class="pill">Length: <span id="lenTag">Short (2–3 sentences)</span></span>
-              <span class="pill">Audience: <span id="audTag">buyers</span></span>
-            </div>
-            <div id="bullets" class="out" style="margin-top:10px"></div>
-          </div>
+        <div>
+          <label class="muted">Audience</label>
+          <select id="audience">
+            <option>Buyers</option>
+            <option>Renters</option>
+            <option>Investors</option>
+          </select>
         </div>
       </div>
+
+      <div class="actions">
+        <button id="generateBtn" class="btn" type="button">Generate</button>
+        <button id="clearBtn" class="btn ghost" type="button">Clear</button>
+        <div id="meter" class="muted" style="align-self:center;margin-left:auto;"></div>
+      </div>
+    </section>
+
+    <!-- RIGHT -->
+    <section class="panel">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <h2>Step 2</h2>
+        <div class="top-actions">
+          <button id="copyTitle" class="btn ghost small-btn" type="button">Copy Title</button>
+          <button id="copyDesc" class="btn ghost small-btn" type="button">Copy Description</button>
+        </div>
+      </div>
+
+      <div id="output">
+        <div class="out-title muted">(Title will appear here)</div>
+        <ul class="bullets"></ul>
+        <div class="desc muted">(Description will appear here)</div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="container footrow">
+    <span>© 2025 QuickListing</span>
+    <nav class="footnav">
+      <a href="/app">App</a>
+      <a href="/#pricing">Pricing</a>
+      <a href="/upgrade">Upgrade</a>
+    </nav>
+  </div>
+</footer>
+
+<!-- Upgrade Modal -->
+<div id="upgradeModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#111827; border:1px solid #1f2937; border-radius:14px; padding:20px; width:min(420px,90vw); text-align:center;">
+    <h2 style="margin:0 0 6px;">Free limit reached</h2>
+    <p style="color:#c1c9d5; margin:0 0 14px;">
+      You used all 10 free descriptions for this month.
+      Upgrade to keep generating.
+    </p>
+    <div style="display:grid; gap:10px;">
+      <a href="/upgrade" class="btn block">See Plans</a>
+      <button id="closeUpgrade" class="btn ghost block" type="button">Not now</button>
     </div>
-  </main>
+  </div>
+</div>
 
-  <footer>© 2025 QuickListing • Built with ❤️ by Nikita</footer>
+<script>
+  // ---------- Upgrade modal ----------
+  function showUpgradeModal(){
+    const m = document.getElementById("upgradeModal");
+    const close = document.getElementById("closeUpgrade");
+    if (!m) return;
+    m.style.display = "flex";
+    if (close) close.onclick = () => (m.style.display = "none");
+    m.onclick = (e) => { if (e.target === m) m.style.display = "none"; };
+  }
 
-  <!-- Minimal client script to call your /generate -->
-  <script>
-    const el = s => document.querySelector(s);
-    const features = el('#features'), tone = el('#tone'), lengthSel = el('#length'), aud = el('#aud');
-    const plan = el('#plan'), gen = el('#gen'), clearBtn = el('#clear');
-    const title = el('#title'), desc = el('#desc'), bullets = el('#bullets');
-    const toneTag = el('#toneTag'), lenTag = el('#lenTag'), audTag = el('#audTag');
+  // ---------- Generate helper (handles boss key + limit popup) ----------
+  async function qlGenerate(body){
+    const adminKey = localStorage.getItem("QL_ADMIN_KEY") || "";
 
-    el('#example').onclick = () => {
-      features.value = "2 bed, 1 bath, renovated kitchen, in-unit laundry, balcony, hardwood floors, near subway";
-    };
-    clearBtn.onclick = () => { features.value=""; title.textContent="(Title will appear here)"; desc.textContent="No description yet."; bullets.textContent=""; };
+    const res = await fetch("/generate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(adminKey ? { "x-admin-key": adminKey } : {})
+      },
+      body: JSON.stringify(body)
+    });
 
-    async function callGenerate(payload){
-      const res = await fetch('/generate', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(payload)
-      });
-      if(!res.ok){ throw new Error('Request failed'); }
-      return await res.json();
+    // show upgrade popup on limit
+    if (res.status === 402) {
+      showUpgradeModal();
+      throw new Error("Limit reached");
     }
 
-    gen.onclick = async () => {
-      desc.textContent = 'Generating…';
-      toneTag.textContent = tone.value;
-      lenTag.textContent = lengthSel.selectedOptions[0].text;
-      audTag.textContent = aud.value.toLowerCase();
-      try{
-        const data = await callGenerate({
-          features: features.value, tone: tone.value,
-          length: lengthSel.value, audience: aud.value, plan: plan.value
-        });
-        title.textContent = data.meta?.title || 'Listing Title';
-        desc.textContent = data.description || '(no description)';
-        if (data.meta?.bullets?.length){
-          bullets.innerHTML = "MLS-style bullets:\n" + data.meta.bullets.map(b => "• " + b).join("\n");
-        } else { bullets.textContent = ""; }
-      }catch(e){
-        desc.textContent = '(Error)';
-      }
-    };
+    if (!res.ok) {
+      const err = await res.json().catch(()=>({}));
+      throw new Error(err.error || "Server error");
+    }
 
-    el('#copyTitle').onclick = async () => { await navigator.clipboard.writeText(title.textContent); };
-    el('#copyDesc').onclick = async () => { await navigator.clipboard.writeText(desc.textContent); };
-  </script>
+    // show remaining in footer meter (reads response headers)
+    const plan = res.headers.get("X-Plan") || "free";
+    const remaining = res.headers.get("X-Remaining") || "";
+    const meter = document.getElementById("meter");
+    if (meter) meter.textContent = plan === "boss"
+      ? "Boss mode: unlimited"
+      : `Plan: ${plan} • Remaining: ${remaining}`;
+
+    return res.json();
+  }
+
+  // ---------- UI wiring ----------
+  const featuresEl = document.getElementById("features");
+  const toneEl = document.getElementById("tone");
+  const lengthEl = document.getElementById("length");
+  const audienceEl = document.getElementById("audience");
+  const outputEl = document.getElementById("output");
+  const bulletsEl = outputEl.querySelector(".bullets");
+  const titleEl = outputEl.querySelector(".out-title");
+  const descEl = outputEl.querySelector(".desc");
+
+  document.getElementById("useExample").onclick = () => {
+    featuresEl.value = "2 bed, 1 bath, renovated kitchen, in-unit laundry, balcony, hardwood floors, near subway";
+  };
+
+  document.getElementById("clearBtn").onclick = () => {
+    featuresEl.value = "";
+    titleEl.textContent = "(Title will appear here)";
+    bulletsEl.innerHTML = "";
+    descEl.textContent = "(Description will appear here)";
+    titleEl.classList.add("muted");
+    descEl.classList.add("muted");
+  };
+
+  document.getElementById("generateBtn").onclick = async () => {
+    const features = featuresEl.value.trim();
+    if (!features) return alert("Please enter key features.");
+
+    titleEl.textContent = "Generating...";
+    descEl.textContent = "";
+    bulletsEl.innerHTML = "";
+
+    try {
+      const data = await qlGenerate({
+        features,
+        tone: toneEl.value,
+        length: lengthEl.value,
+        audience: audienceEl.value
+      });
+
+      const title = data?.meta?.title || "Listing Title";
+      const bullets = data?.meta?.bullets || [];
+      const description = data?.description || "";
+
+      titleEl.textContent = title;
+      titleEl.classList.remove("muted");
+
+      bulletsEl.innerHTML = bullets.map(b => `<li>${b}</li>`).join("");
+
+      descEl.textContent = description;
+      descEl.classList.remove("muted");
+    } catch (err) {
+      console.error(err);
+      titleEl.textContent = "(Error)";
+      titleEl.classList.add("muted");
+      descEl.textContent = err.message || "Something went wrong.";
+      descEl.classList.add("muted");
+    }
+  };
+
+  document.getElementById("copyTitle").onclick = async () => {
+    const t = titleEl.textContent || "";
+    if (!t || t.includes("(Title")) return;
+    await navigator.clipboard.writeText(t);
+  };
+
+  document.getElementById("copyDesc").onclick = async () => {
+    const bullets = [...bulletsEl.querySelectorAll("li")].map(li => "- " + li.textContent).join("\n");
+    const d = descEl.textContent || "";
+    const text = (titleEl.textContent || "") + "\n\n" + bullets + "\n\n" + d;
+    if (!d || d.includes("(Description")) return;
+    await navigator.clipboard.writeText(text);
+  };
+</script>
+
 </body>
 </html>
