@@ -1,4 +1,4 @@
-// server.js — QuickListing (stable env + caps + boss + stripe-ready)
+// server.js — QuickListing (stable env + caps + boss + stripe plan-redirect)
 // ---------------------------------------------------
 const path = require("path");
 const express = require("express");
@@ -6,7 +6,7 @@ const { OpenAI } = require("openai");
 const Stripe = require("stripe");
 require("dotenv").config();
 
-// ---------- SAFE ENV HELPER (fixes ERR_INVALID_CHAR forever) ----------
+// ---------- SAFE ENV HELPER (removes hidden spaces/newlines) ----------
 const env = (key, fallback = "") =>
   (process.env[key] ?? fallback).toString().trim();
 
@@ -26,7 +26,7 @@ app.get("/success",(_,res)=>res.sendFile(path.join(__dirname,"public","success.h
 app.get("/version",(_,res)=>res.json({ ok:true, app:"QuickListing", version:"1.0.0" }));
 
 // ============================================================================
-// Plans + caps (per month per IP)
+// Plans + caps (per month per IP) — TEMP UNTIL REAL ACCOUNTS/WEBHOOKS
 // ============================================================================
 const CAPS = { free: 10, starter: 150, growth: 500, boss: 999999 };
 const usageByIp = new Map();
@@ -80,14 +80,16 @@ app.use((req, res, next) => {
 });
 
 // ============================================================================
-// Stripe setup (even if you’re not using webhooks yet)
+// Stripe setup
 // ============================================================================
 const stripeSecret = env("STRIPE_SECRET_KEY");
 const stripe = stripeSecret ? Stripe(stripeSecret) : null;
 
 const STARTER_PRICE_ID = env("STRIPE_STARTER_PRICE_ID");
 const GROWTH_PRICE_ID  = env("STRIPE_GROWTH_PRICE_ID");
-const SUCCESS_URL      = env("STRIPE_SUCCESS_URL", "https://quicklisting.onrender.com/success");
+
+// Base success URL (we append plan automatically)
+const SUCCESS_URL_BASE = env("STRIPE_SUCCESS_URL", "https://quicklisting.onrender.com/success");
 const CANCEL_URL       = env("STRIPE_CANCEL_URL",  "https://quicklisting.onrender.com/upgrade");
 
 // create checkout session
@@ -103,10 +105,13 @@ app.post("/create-checkout-session", async (req, res) => {
 
     if (!priceId) return res.status(400).json({ error: "Invalid plan selected." });
 
+    // Send plan to success page so browser can store it
+    const success_url = `${SUCCESS_URL_BASE}?plan=${plan}`;
+
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: SUCCESS_URL,
+      success_url,
       cancel_url: CANCEL_URL
     });
 

@@ -6,12 +6,11 @@
   <title>QuickListing — App</title>
   <link rel="stylesheet" href="/styles.css"/>
   <style>
-    /* small app-only tweaks */
     .app-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
     .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
     .panel h2{margin:0 0 10px}
     .row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px}
-    .actions{display:flex;gap:10px;margin-top:12px}
+    .actions{display:flex;gap:10px;margin-top:12px;align-items:center}
     .muted{color:#c1c9d5;font-size:14px}
     .out-title{font-size:20px;font-weight:800;margin:0 0 6px}
     .bullets{margin:8px 0 12px 18px}
@@ -78,7 +77,7 @@
       <div class="actions">
         <button id="generateBtn" class="btn" type="button">Generate</button>
         <button id="clearBtn" class="btn ghost" type="button">Clear</button>
-        <div id="meter" class="muted" style="align-self:center;margin-left:auto;"></div>
+        <div id="meter" class="muted" style="margin-left:auto;"></div>
       </div>
     </section>
 
@@ -118,7 +117,7 @@
   <div style="background:#111827; border:1px solid #1f2937; border-radius:14px; padding:20px; width:min(420px,90vw); text-align:center;">
     <h2 style="margin:0 0 6px;">Free limit reached</h2>
     <p style="color:#c1c9d5; margin:0 0 14px;">
-      You used all 10 free descriptions for this month.
+      You used all free descriptions for this month.
       Upgrade to keep generating.
     </p>
     <div style="display:grid; gap:10px;">
@@ -139,15 +138,17 @@
     m.onclick = (e) => { if (e.target === m) m.style.display = "none"; };
   }
 
-  // ---------- Generate helper (handles boss key + limit popup) ----------
+  // ---------- Generate helper (boss key + plan header + meter) ----------
   async function qlGenerate(body){
     const adminKey = localStorage.getItem("QL_ADMIN_KEY") || "";
+    const plan = (localStorage.getItem("QL_PLAN") || "free").toLowerCase();
 
     const res = await fetch("/generate", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...(adminKey ? { "x-admin-key": adminKey } : {})
+        ...(adminKey ? { "x-admin-key": adminKey } : {}),
+        ...(adminKey ? {} : { "x-plan": plan }) // only send plan if not boss
       },
       body: JSON.stringify(body)
     });
@@ -162,12 +163,13 @@
       throw new Error(err.error || "Server error");
     }
 
-    const plan = res.headers.get("X-Plan") || "free";
+    const planHeader = res.headers.get("X-Plan") || "free";
     const remaining = res.headers.get("X-Remaining") || "";
     const meter = document.getElementById("meter");
-    if (meter) meter.textContent = plan === "boss"
-      ? "Boss mode: unlimited"
-      : `Plan: ${plan} • Remaining: ${remaining}`;
+    if (meter) meter.textContent =
+      planHeader === "boss"
+        ? "Boss mode: unlimited"
+        : `Plan: ${planHeader} • Remaining: ${remaining}`;
 
     return res.json();
   }
@@ -233,7 +235,7 @@
 
   document.getElementById("copyTitle").onclick = async () => {
     const t = titleEl.textContent || "";
-    if (!t || t.includes("(Title")) return;
+    if (!t || t.includes("(Title") || t.includes("(Error")) return;
     await navigator.clipboard.writeText(t);
   };
 
@@ -241,9 +243,17 @@
     const bullets = [...bulletsEl.querySelectorAll("li")].map(li => "- " + li.textContent).join("\n");
     const d = descEl.textContent || "";
     const text = (titleEl.textContent || "") + "\n\n" + bullets + "\n\n" + d;
-    if (!d || d.includes("(Description")) return;
+    if (!d || d.includes("(Description") || d.includes("wrong")) return;
     await navigator.clipboard.writeText(text);
   };
+
+  // show current plan on load
+  (function initMeter(){
+    const adminKey = localStorage.getItem("QL_ADMIN_KEY");
+    const plan = localStorage.getItem("QL_PLAN") || "free";
+    const meter = document.getElementById("meter");
+    if (meter) meter.textContent = adminKey ? "Boss mode: unlimited" : `Plan: ${plan}`;
+  })();
 </script>
 
 </body>

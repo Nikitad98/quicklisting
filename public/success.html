@@ -6,9 +6,7 @@
   <title>QuickListing — Success</title>
   <link rel="stylesheet" href="/styles.css"/>
   <style>
-    .success-wrap{
-      min-height:70vh; display:grid; place-items:center; padding:40px 0;
-    }
+    .success-wrap{min-height:70vh;display:grid;place-items:center;padding:40px 0;}
     .success-card{
       width:min(640px,92vw);
       background:var(--card);
@@ -18,16 +16,11 @@
       text-align:center;
       box-shadow:0 10px 30px rgba(0,0,0,.3);
     }
-    .success-card h1{margin:6px 0 8px; font-size:34px;}
-    .success-card p{color:#c1c9d5; margin:0 0 14px;}
-    .steps{
-      text-align:left; margin:18px auto; max-width:460px; color:#e5e7eb;
-    }
+    .success-card h1{margin:6px 0 8px;font-size:34px;}
+    .success-card p{color:#c1c9d5;margin:0 0 14px;}
+    .steps{text-align:left;margin:18px auto;max-width:460px;color:#e5e7eb;}
     .steps li{margin:8px 0;}
-    .pill{
-      display:inline-block; padding:6px 10px; border-radius:999px;
-      background:#0e1626; border:1px solid var(--line); color:#c1c9d5; font-size:13px;
-    }
+    .pill{display:inline-block;padding:6px 10px;border-radius:999px;background:#0e1626;border:1px solid var(--line);color:#c1c9d5;font-size:13px;}
   </style>
 </head>
 <body>
@@ -45,10 +38,7 @@
   <div class="success-card">
     <div class="pill">Payment successful</div>
     <h1>You’re upgraded 🎉</h1>
-    <p>
-      Your plan is active and your monthly limit is unlocked.
-      Thanks for supporting QuickListing.
-    </p>
+    <p id="planText">Your plan is active.</p>
 
     <ul class="steps">
       <li><strong>1.</strong> Go to the app</li>
@@ -60,10 +50,6 @@
       <a class="btn block" href="/app">Start Generating</a>
       <a class="btn ghost block" href="/upgrade">View Plan Details</a>
     </div>
-
-    <p style="margin-top:14px; font-size:13px;">
-      If anything looks wrong, just email support and we’ll fix it fast.
-    </p>
   </div>
 </main>
 
@@ -72,11 +58,22 @@
     <span>© 2025 QuickListing</span>
     <nav class="footnav">
       <a href="/app">App</a>
-      <a href="/#pricing">Pricing</a>
       <a href="/upgrade">Upgrade</a>
     </nav>
   </div>
 </footer>
+
+<script>
+  // store plan into browser (temporary until real accounts/webhooks)
+  const params = new URLSearchParams(location.search);
+  const plan = (params.get("plan") || "").toLowerCase();
+
+  if (plan === "starter" || plan === "growth") {
+    localStorage.setItem("QL_PLAN", plan);
+    const planText = document.getElementById("planText");
+    if (planText) planText.textContent = `Plan activated: ${plan.toUpperCase()} ✅`;
+  }
+</script>
 
 </body>
 </html>
