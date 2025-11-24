@@ -68,7 +68,8 @@ app.use((req, res, next) => {
 
   // expose plan/remaining for frontend meter
   res.setHeader("X-Plan", plan);
-  res.setHeader("X-Remaining", plan === "boss" ? "∞" : Math.max(0, limit - rec.used));
+  // IMPORTANT: headers must be ASCII (no ∞)
+  res.setHeader("X-Remaining", plan === "boss" ? "INF" : String(Math.max(0, limit - rec.used)));
 
   if (plan !== "boss" && rec.used > limit) {
     return res.status(402).json({
@@ -105,7 +106,6 @@ app.post("/create-checkout-session", async (req, res) => {
 
     if (!priceId) return res.status(400).json({ error: "Invalid plan selected." });
 
-    // Send plan to success page so browser can store it
     const success_url = `${SUCCESS_URL_BASE}?plan=${plan}`;
 
     const session = await stripe.checkout.sessions.create({
