@@ -128,8 +128,26 @@
 </div>
 
 <script>
-  // ---- plan limits (match server CAPS) ----
+  // ---- plan limits (for UI only; real limits are on the server) ----
   const LIMITS = { free: 10, starter: 150, growth: 500 };
+
+  // ---------- helper: stable anonymous user id ----------
+  function getUserId() {
+    try {
+      let id = localStorage.getItem("QL_USER_ID");
+      if (!id) {
+        if (self.crypto && crypto.randomUUID) {
+          id = crypto.randomUUID();
+        } else {
+          id = "anon-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+        }
+        localStorage.setItem("QL_USER_ID", id);
+      }
+      return id;
+    } catch {
+      return "anon-" + Date.now();
+    }
+  }
 
   // ---------- Upgrade modal ----------
   function showUpgradeModal(){
@@ -141,18 +159,26 @@
     m.onclick = (e) => { if (e.target === m) m.style.display = "none"; };
   }
 
-  // ---------- Generate helper (boss key + plan header + persistent meter) ----------
+  // ---------- Generate helper ----------
   async function qlGenerate(body){
     const adminKey = localStorage.getItem("QL_ADMIN_KEY") || "";
     const planLocal = (localStorage.getItem("QL_PLAN") || "free").toLowerCase();
+    const userId = getUserId();
+
+    const headers = {
+      "Content-Type": "application/json",
+      "x-user-id": userId,
+    };
+
+    if (adminKey) {
+      headers["x-admin-key"] = adminKey;
+    } else {
+      headers["x-plan"] = planLocal;
+    }
 
     const res = await fetch("/generate", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(adminKey ? { "x-admin-key": adminKey } : {}),
-        ...(adminKey ? {} : { "x-plan": planLocal })
-      },
+      headers,
       body: JSON.stringify(body)
     });
 
