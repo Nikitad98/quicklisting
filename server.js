@@ -1,218 +1,215 @@
-// -------------------------------------------------------------
-// QuickListing — PRODUCTION BACKEND (Stripe + Redis + Usage)
-// -------------------------------------------------------------
-const path = require("path");
-const express = require("express");
-const { OpenAI } = require("openai");
-const Stripe = require("stripe");
-const { Redis } = require("@upstash/redis");
-require("dotenv").config();
+import express from "express";
+import cors from "cors";
+import Stripe from "stripe";
+import dotenv from "dotenv";
+import bodyParser from "body-parser";
+import cookieParser from "cookie-parser";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 
+dotenv.config();
 const app = express();
-app.use(express.json({
-  verify: (req, res, buf) => {
-    req.rawBody = buf; // needed for stripe webhook signature
-  }
-}));
-app.use(express.urlencoded({ extended: true }));
+const port = process.env.PORT || 10000;
 
-// -------------------------------------------------------------
-// STATIC
-// -------------------------------------------------------------
-app.use(express.static(path.join(__dirname, "public")));
-
-app.get("/", (_,res)=>res.sendFile(path.join(__dirname,"public","landing.html")));
-app.get("/app",(_,res)=>res.sendFile(path.join(__dirname,"public","app.html")));
-app.get("/upgrade",(_,res)=>res.sendFile(path.join(__dirname,"public","upgrade.html")));
-app.get("/success",(_,res)=>res.sendFile(path.join(__dirname,"public","success.html")));
-
-// Health
-app.get("/version",(_,res)=>res.json({ok:true,version:"3.0.0"}));
-
-
-// -------------------------------------------------------------
-// REDIS
-// -------------------------------------------------------------
+// --------------------
+// INITIALIZE SERVICES
+// --------------------
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
   token: process.env.UPSTASH_REDIS_REST_TOKEN,
 });
 
-// plan caps
-const CAPS = { free: 10, starter: 150, growth: 500 };
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// helper
-function monthKey() {
+// Webhook requires raw body
+app.use("/webhook", bodyParser.raw({ type: "application/json" }));
+
+// Normal JSON for everything else
+app.use(express.json());
+app.use(cors());
+app.use(cookieParser());
+
+// -------------------------------
+// DAILY FREE RESET AT MIDNIGHT
+// -------------------------------
+async function scheduleDailyReset() {
   const now = new Date();
-  return `${now.getUTCFullYear()}-${String(now.getUTCMonth()+1).padStart(2,"0")}`;
+  const midnight = new Date();
+  midnight.setHours(24, 0, 0, 0);
+
+  const delay = midnight - now;
+
+  setTimeout(async () => {
+    await redis.set("free_count", 10);
+    console.log("🔄 Daily free count reset to 10");
+    scheduleDailyReset();
+  }, delay);
+}
+scheduleDailyReset();
+
+// Make sure free count exists
+redis.get("free_count").then((v) => {
+  if (!v) redis.set("free_count", 10);
+});
+
+// -------------------------------
+// CHECK USER PLAN + REMAINING
+// -------------------------------
+async function getUserCredits(userId) {
+  const plan = (await redis.get(`plan:${userId}`)) || "free";
+
+  if (plan === "starter") {
+    let credits = await redis.get(`credits:${userId}`);
+    if (credits === null) {
+      await redis.set(`credits:${userId}`, 150);
+      credits = 150;
+    }
+    return { plan, credits };
+  }
+
+  if (plan === "growth") {
+    let credits = await redis.get(`credits:${userId}`);
+    if (credits === null) {
+      await redis.set(`credits:${userId}`, 500);
+      credits = 500;
+    }
+    return { plan, credits };
+  }
+
+  const freeLeft = await redis.get("free_count");
+  return { plan: "free", credits: freeLeft };
 }
 
-
-// -------------------------------------------------------------
-// USAGE GUARD (Redis-based)
-// -------------------------------------------------------------
-async function usageGuard(req, res, next) {
+// -------------------------------
+// GENERATION ENDPOINT
+// -------------------------------
+app.post("/generate", async (req, res) => {
   try {
-    // Boss mode override
-    const adminHeader = req.headers["x-admin-key"];
-    const ADMIN_KEY = process.env.ADMIN_KEY || "";
-    if (adminHeader && adminHeader === ADMIN_KEY) {
-      res.setHeader("X-Plan","boss");
-      res.setHeader("X-Remaining","INF");
-      return next();
-    }
+    const userId = req.cookies.userId || req.headers["x-user-id"];
 
-    // userId (anonymous)
-    let userId = (req.headers["x-user-id"] || "").toString().trim();
-    if (!userId) {
-      userId = req.ip || "unknown";
-    }
+    if (!userId) return res.status(400).json({ error: "Missing userId" });
 
-    // real plan from Redis (Stripe-sync)
-    const plan = (await redis.get(`ql:plan:${userId}`)) || "free";
-    const limit = CAPS[plan] ?? CAPS.free;
-
-    const month = monthKey();
-    const key = `ql:usage:${userId}:${month}`;
-
-    let record = await redis.get(key);
-    let used = record?.used ?? 0;
-
-    if (used >= limit) {
-      res.setHeader("X-Plan", plan);
-      res.setHeader("X-Remaining", 0);
-      return res.status(402).json({
-        error:`Limit reached for ${plan}`,
-        plan, limit, used
+    // Admin unlimited mode
+    if (userId === process.env.ADMIN_KEY) {
+      return res.json({
+        title: "Boss mode active",
+        description: "Unlimited power.",
       });
     }
 
-    // increment + store
-    used += 1;
-    await redis.set(key, { used, plan, month, updatedAt: Date.now() });
+    const { plan, credits } = await getUserCredits(userId);
 
-    const remaining = Math.max(0, limit-used);
-    res.setHeader("X-Plan", plan);
-    res.setHeader("X-Remaining", remaining);
+    if (credits <= 0) {
+      return res.status(402).json({ error: "limit_reached", plan });
+    }
 
-    next();
-  } catch (err) {
-    console.error("USAGE GUARD ERROR:", err);
-    next(); // fail-open
-  }
-}
+    // Deduct credit
+    if (plan === "free") {
+      await redis.decr("free_count");
+    } else {
+      await redis.decr(`credits:${userId}`);
+    }
 
+    // ------- AI GENERATION -------
+    const features = req.body.features || "";
+    const tone = req.body.tone || "Professional";
+    const length = req.body.length || "Short";
+    const audience = req.body.audience || "Buyers";
 
-// -------------------------------------------------------------
-// OPENAI
-// -------------------------------------------------------------
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const prompt = `
+Write a real estate listing title and description.
+Features: ${features}
+Tone: ${tone}, Length: ${length}, Audience: ${audience}.
+`;
 
-app.post("/generate", usageGuard, async (req,res)=>{
-  try {
-    const { features="", tone="Professional", length="short", audience="Buyers" } = req.body;
-    if (!features.trim()) return res.status(400).json({error:"Missing features"});
-
-    const messages = [
-      { role:"system", content:`You are a real-estate copywriter. Return JSON: { "meta": { "title": string, "bullets": string[] }, "description": string }.` },
-      { role:"user", content:`Create a listing description.\n- Features: ${features}\n- Tone: ${tone}\n- Length: ${length}\n- Audience: ${audience}\n- Title: 4–9 words no emojis.\n- Bullets: 2–4 items.`}
-    ];
-
-    const resp = await openai.chat.completions.create({
-      model:"gpt-4o-mini",
-      messages,
-      temperature:0.3,
-      response_format:{ type:"json_object" }
+    const ai = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+      }),
     });
 
-    let data;
-    try { data = JSON.parse(resp.choices[0].message.content); }
-    catch { data = {}; }
+    const json = await ai.json();
 
-    const title = data?.meta?.title || "Beautiful Home";
-    const bullets = Array.isArray(data?.meta?.bullets) ? data.meta.bullets.slice(0,4) : [];
-    const description = data?.description || "Charming property description.";
-
-    res.json({ meta:{title, bullets}, description });
+    return res.json({
+      title: json.choices[0].message.content.split("\n")[0],
+      description: json.choices[0].message.content,
+    });
   } catch (err) {
     console.error("GEN ERROR:", err);
-    res.status(500).json({error:"Server error"});
+    return res.status(500).json({ error: "server_error" });
   }
 });
 
-
-// -------------------------------------------------------------
-// STRIPE CHECKOUT
-// -------------------------------------------------------------
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-const STARTER_PRICE = "price_1SUjjT4RsMwSLTmtpamYSCca";
-const GROWTH_PRICE  = "price_1SUjkD4RsMwSLTmttJmPB8dX";
-
-app.post("/create-checkout-session", async (req,res)=>{
+// -------------------------------
+// CHECKOUT SESSIONS
+// -------------------------------
+app.post("/create-checkout-session", async (req, res) => {
   try {
-    const { plan, userId } = req.body;
-    const normalized = (plan || "starter").toLowerCase();
-
-    const priceId = normalized === "growth" ? GROWTH_PRICE : STARTER_PRICE;
+    const { priceId, userId } = req.body;
 
     const session = await stripe.checkout.sessions.create({
-      mode:"subscription",
-      line_items:[{ price:priceId, quantity:1 }],
-      success_url:`${process.env.STRIPE_SUCCESS_URL}?plan=${normalized}`,
-      cancel_url: process.env.STRIPE_CANCEL_URL || "https://quicklisting.onrender.com/upgrade",
-      metadata: {
-        userId: userId || "unknown"
-      }
+      mode: "payment",
+      line_items: [{ price: priceId, quantity: 1 }],
+      success_url: process.env.STRIPE_SUCCESS_URL,
+      cancel_url: process.env.STRIPE_CANCEL_URL,
+      metadata: { userId, priceId },
     });
 
     res.json({ url: session.url });
   } catch (err) {
     console.error("CHECKOUT ERROR:", err);
-    res.status(500).json({ error:"stripe error" });
+    res.status(500).json({ error: "checkout_failed" });
   }
 });
 
-
-// -------------------------------------------------------------
-// STRIPE WEBHOOK — The REAL source of truth
-// -------------------------------------------------------------
-app.post("/stripe/webhook", (req,res)=>{
+// ---------------------------------------
+// STRIPE WEBHOOK — REQUIRED FOR ACTIVATION
+// ---------------------------------------
+app.post("/webhook", async (req, res) => {
   const sig = req.headers["stripe-signature"];
+  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+
   let event;
 
   try {
-    event = stripe.webhooks.constructEvent(req.rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    event = stripe.webhooks.constructEvent(req.body, sig, secret);
   } catch (err) {
-    console.error("WEBHOOK SIGNATURE ERROR:", err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
+    console.error("❌ Webhook error:", err.message);
+    return res.status(400).send("Webhook signature failed");
   }
 
-  // Handle events
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
     const userId = session.metadata.userId;
-    const priceId = session.line_items?.data?.[0]?.price?.id || "";
+    const priceId = session.metadata.priceId;
 
-    let plan = "free";
-    if (priceId === STARTER_PRICE) plan = "starter";
-    if (priceId === GROWTH_PRICE) plan = "growth";
+    if (priceId === process.env.STRIPE_STARTER_PRICE_ID) {
+      await redis.set(`plan:${userId}`, "starter");
+      await redis.set(`credits:${userId}`, 150);
+      console.log("🎉 Starter activated:", userId);
+    }
 
-    redis.set(`ql:plan:${userId}`, plan);
+    if (priceId === process.env.STRIPE_GROWTH_PRICE_ID) {
+      await redis.set(`plan:${userId}`, "growth");
+      await redis.set(`credits:${userId}`, 500);
+      console.log("🚀 Growth activated:", userId);
+    }
   }
 
-  if (event.type === "customer.subscription.deleted") {
-    const sub = event.data.object;
-    const customerId = sub.customer;
-
-    // find user by scanning Redis
-    redis.set(`ql:plan:${customerId}`, "free");
-  }
-
-  res.json({received:true});
+  res.sendStatus(200);
 });
 
+// -------------------------------
+// START SERVER
+// -------------------------------
+app.use(express.static("public"));
 
-// -------------------------------------------------------------
-const PORT = process.env.PORT || 3000;
-app.listen(PORT,()=>console.log("Server running on " + PORT));
+app.listen(port, () =>
+  console.log(`QuickListing running on http://localhost:${port}`)
+);
