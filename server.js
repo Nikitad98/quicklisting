@@ -1,5 +1,6 @@
-// server.js — QuickListing with Redis usage tracking
-// -----------------------------------------------
+// -------------------------------------------------------------
+// QuickListing — PRODUCTION BACKEND (Stripe + Redis + Usage)
+// -------------------------------------------------------------
 const path = require("path");
 const express = require("express");
 const { OpenAI } = require("openai");
@@ -8,219 +9,210 @@ const { Redis } = require("@upstash/redis");
 require("dotenv").config();
 
 const app = express();
-app.use(express.json());
+app.use(express.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf; // needed for stripe webhook signature
+  }
+}));
 app.use(express.urlencoded({ extended: true }));
 
-// ---- Static assets ----------------------------------------------------------
+// -------------------------------------------------------------
+// STATIC
+// -------------------------------------------------------------
 app.use(express.static(path.join(__dirname, "public")));
 
-// ---- Pages ------------------------------------------------------------------
-app.get("/",       (_, res) => res.sendFile(path.join(__dirname, "public", "landing.html")));
-app.get("/app",    (_, res) => res.sendFile(path.join(__dirname, "public", "app.html")));
-app.get("/upgrade",(_, res) => res.sendFile(path.join(__dirname, "public", "upgrade.html")));
-app.get("/success",(_, res) => res.sendFile(path.join(__dirname, "public", "success.html")));
+app.get("/", (_,res)=>res.sendFile(path.join(__dirname,"public","landing.html")));
+app.get("/app",(_,res)=>res.sendFile(path.join(__dirname,"public","app.html")));
+app.get("/upgrade",(_,res)=>res.sendFile(path.join(__dirname,"public","upgrade.html")));
+app.get("/success",(_,res)=>res.sendFile(path.join(__dirname,"public","success.html")));
 
-// ---- Health -----------------------------------------------------------------
-app.get("/version", (_, res) =>
-  res.json({ ok: true, app: "QuickListing", version: "2.0.0" })
-);
+// Health
+app.get("/version",(_,res)=>res.json({ok:true,version:"3.0.0"}));
 
-// ============================================================================
-// Redis client (Upstash)
-// ============================================================================
+
+// -------------------------------------------------------------
+// REDIS
+// -------------------------------------------------------------
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
   token: process.env.UPSTASH_REDIS_REST_TOKEN,
 });
 
-// Plan caps per month
+// plan caps
 const CAPS = { free: 10, starter: 150, growth: 500 };
-const ADMIN_KEY = process.env.ADMIN_KEY || "";
 
-// Get month string like "2025-11"
-function currentMonthKey() {
+// helper
+function monthKey() {
   const now = new Date();
-  return (
-    now.getUTCFullYear() +
-    "-" +
-    String(now.getUTCMonth() + 1).padStart(2, "0")
-  );
+  return `${now.getUTCFullYear()}-${String(now.getUTCMonth()+1).padStart(2,"0")}`;
 }
 
-// Read plan hint from header (still used for now)
-function getPlan(req) {
-  const p = (req.headers["x-plan"] || "").toString().toLowerCase().trim();
-  return ["free", "starter", "growth"].includes(p) ? p : "free";
-}
 
-// ============================================================================
-// Usage guard — checks Redis before /generate
-// ============================================================================
+// -------------------------------------------------------------
+// USAGE GUARD (Redis-based)
+// -------------------------------------------------------------
 async function usageGuard(req, res, next) {
   try {
-    // Boss mode: skip limits
-    const adminHeader = (req.headers["x-admin-key"] || "").toString().trim();
-    const isBoss = ADMIN_KEY && adminHeader && adminHeader === ADMIN_KEY;
-    if (isBoss) {
-      res.setHeader("X-Plan", "boss");
-      res.setHeader("X-Remaining", "INF");
+    // Boss mode override
+    const adminHeader = req.headers["x-admin-key"];
+    const ADMIN_KEY = process.env.ADMIN_KEY || "";
+    if (adminHeader && adminHeader === ADMIN_KEY) {
+      res.setHeader("X-Plan","boss");
+      res.setHeader("X-Remaining","INF");
       return next();
     }
 
-    // User id (anonymous) from header; fallback to IP
+    // userId (anonymous)
     let userId = (req.headers["x-user-id"] || "").toString().trim();
     if (!userId) {
-      userId =
-        (req.headers["x-forwarded-for"] || "").toString().split(",")[0].trim() ||
-        req.socket?.remoteAddress ||
-        req.ip ||
-        "unknown";
+      userId = req.ip || "unknown";
     }
 
-    const plan = getPlan(req);
+    // real plan from Redis (Stripe-sync)
+    const plan = (await redis.get(`ql:plan:${userId}`)) || "free";
     const limit = CAPS[plan] ?? CAPS.free;
-    const month = currentMonthKey();
+
+    const month = monthKey();
     const key = `ql:usage:${userId}:${month}`;
 
-    let record = await redis.get(key); // { used, plan, month } or null
-    let used = record && typeof record.used === "number" ? record.used : 0;
+    let record = await redis.get(key);
+    let used = record?.used ?? 0;
 
     if (used >= limit) {
       res.setHeader("X-Plan", plan);
       res.setHeader("X-Remaining", 0);
       return res.status(402).json({
-        error: `Limit reached for ${plan}. Please upgrade on /upgrade.`,
-        plan,
-        limit,
-        used,
+        error:`Limit reached for ${plan}`,
+        plan, limit, used
       });
     }
 
-    // Increment and store
+    // increment + store
     used += 1;
-    record = { used, plan, month, updatedAt: Date.now() };
-    await redis.set(key, record);
+    await redis.set(key, { used, plan, month, updatedAt: Date.now() });
 
-    const remaining = Math.max(0, limit - used);
+    const remaining = Math.max(0, limit-used);
     res.setHeader("X-Plan", plan);
     res.setHeader("X-Remaining", remaining);
 
-    return next();
+    next();
   } catch (err) {
     console.error("USAGE GUARD ERROR:", err);
-    // Fail-open: if Redis explodes, we don't block the user
-    return next();
+    next(); // fail-open
   }
 }
 
-// ============================================================================
-// OpenAI client
-// ============================================================================
+
+// -------------------------------------------------------------
+// OPENAI
+// -------------------------------------------------------------
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// ============================================================================
-// /generate — protected by usageGuard
-// ============================================================================
-app.post("/generate", usageGuard, async (req, res) => {
+app.post("/generate", usageGuard, async (req,res)=>{
   try {
-    const {
-      features = "",
-      tone = "Professional",
-      length = "short",
-      audience = "Buyers",
-    } = req.body || {};
+    const { features="", tone="Professional", length="short", audience="Buyers" } = req.body;
+    if (!features.trim()) return res.status(400).json({error:"Missing features"});
 
-    if (!features.trim()) {
-      return res.status(400).json({ error: "Please provide key features." });
-    }
-
-    const system =
-      'You are a real-estate copywriter. Return JSON: { "meta": { "title": string, "bullets": string[] }, "description": string }.';
-    const user = `Create a listing description.
-- Features: ${features}
-- Tone: ${tone}
-- Length: ${length}
-- Audience: ${audience}
-- Title: 4–9 words, no emojis.
-- Bullets: 2–4 MLS-style bullets, concise.`;
+    const messages = [
+      { role:"system", content:`You are a real-estate copywriter. Return JSON: { "meta": { "title": string, "bullets": string[] }, "description": string }.` },
+      { role:"user", content:`Create a listing description.\n- Features: ${features}\n- Tone: ${tone}\n- Length: ${length}\n- Audience: ${audience}\n- Title: 4–9 words no emojis.\n- Bullets: 2–4 items.`}
+    ];
 
     const resp = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      temperature: 0.3,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-      response_format: { type: "json_object" },
+      model:"gpt-4o-mini",
+      messages,
+      temperature:0.3,
+      response_format:{ type:"json_object" }
     });
 
     let data;
-    try {
-      data = JSON.parse(resp.choices?.[0]?.message?.content || "{}");
-    } catch {
-      data = {};
-    }
+    try { data = JSON.parse(resp.choices[0].message.content); }
+    catch { data = {}; }
 
-    const title = (data?.meta?.title || "Charming Move-In Ready Home")
-      .toString()
-      .slice(0, 80);
-    const bullets = Array.isArray(data?.meta?.bullets)
-      ? data.meta.bullets.slice(0, 4)
-      : [];
-    const description = (
-      data?.description || "Well-presented home close to transit."
-    ).toString();
+    const title = data?.meta?.title || "Beautiful Home";
+    const bullets = Array.isArray(data?.meta?.bullets) ? data.meta.bullets.slice(0,4) : [];
+    const description = data?.description || "Charming property description.";
 
-    return res.json({ meta: { title, bullets }, description });
-  } catch (e) {
-    console.error("GENERATE ERROR:", e?.status, e?.code, e?.message);
-    return res.status(500).json({ error: e?.message || "Server error" });
+    res.json({ meta:{title, bullets}, description });
+  } catch (err) {
+    console.error("GEN ERROR:", err);
+    res.status(500).json({error:"Server error"});
   }
 });
 
-// ============================================================================
-// Stripe Checkout — Starter / Growth
-// ============================================================================
+
+// -------------------------------------------------------------
+// STRIPE CHECKOUT
+// -------------------------------------------------------------
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-const STARTER_PRICE_ID = process.env.STRIPE_STARTER_PRICE_ID;
-const GROWTH_PRICE_ID = process.env.STRIPE_GROWTH_PRICE_ID;
-const SUCCESS_URL =
-  process.env.STRIPE_SUCCESS_URL ||
-  "https://quicklisting.onrender.com/success";
-const CANCEL_URL =
-  process.env.STRIPE_CANCEL_URL ||
-  "https://quicklisting.onrender.com/upgrade";
+const STARTER_PRICE = "price_1SUjjT4RsMwSLTmtpamYSCca";
+const GROWTH_PRICE  = "price_1SUjkD4RsMwSLTmttJmPB8dX";
 
-app.post("/create-checkout-session", async (req, res) => {
+app.post("/create-checkout-session", async (req,res)=>{
   try {
-    const { plan } = req.body || {};
+    const { plan, userId } = req.body;
     const normalized = (plan || "starter").toLowerCase();
-    const priceId =
-      normalized === "growth" ? GROWTH_PRICE_ID : STARTER_PRICE_ID;
 
-    if (!priceId) {
-      return res.status(400).json({ error: "Unknown plan" });
-    }
+    const priceId = normalized === "growth" ? GROWTH_PRICE : STARTER_PRICE;
 
     const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
-      line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${SUCCESS_URL}?plan=${normalized}`,
-      cancel_url: CANCEL_URL,
+      mode:"subscription",
+      line_items:[{ price:priceId, quantity:1 }],
+      success_url:`${process.env.STRIPE_SUCCESS_URL}?plan=${normalized}`,
+      cancel_url: process.env.STRIPE_CANCEL_URL || "https://quicklisting.onrender.com/upgrade",
+      metadata: {
+        userId: userId || "unknown"
+      }
     });
 
-    return res.json({ url: session.url });
+    res.json({ url: session.url });
   } catch (err) {
-    console.error("STRIPE CHECKOUT ERROR:", err);
-    return res.status(500).json({ error: "Unable to create checkout session" });
+    console.error("CHECKOUT ERROR:", err);
+    res.status(500).json({ error:"stripe error" });
   }
 });
 
-// ----------------------------------------------------------------------------
-// START
-// ----------------------------------------------------------------------------
+
+// -------------------------------------------------------------
+// STRIPE WEBHOOK — The REAL source of truth
+// -------------------------------------------------------------
+app.post("/stripe/webhook", (req,res)=>{
+  const sig = req.headers["stripe-signature"];
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(req.rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    console.error("WEBHOOK SIGNATURE ERROR:", err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  // Handle events
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object;
+    const userId = session.metadata.userId;
+    const priceId = session.line_items?.data?.[0]?.price?.id || "";
+
+    let plan = "free";
+    if (priceId === STARTER_PRICE) plan = "starter";
+    if (priceId === GROWTH_PRICE) plan = "growth";
+
+    redis.set(`ql:plan:${userId}`, plan);
+  }
+
+  if (event.type === "customer.subscription.deleted") {
+    const sub = event.data.object;
+    const customerId = sub.customer;
+
+    // find user by scanning Redis
+    redis.set(`ql:plan:${customerId}`, "free");
+  }
+
+  res.json({received:true});
+});
+
+
+// -------------------------------------------------------------
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () =>
-  console.log(`QuickListing running on http://localhost:${PORT}`)
-);
+app.listen(PORT,()=>console.log("Server running on " + PORT));
